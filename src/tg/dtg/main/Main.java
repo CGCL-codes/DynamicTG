@@ -1,9 +1,11 @@
 package tg.dtg.main;
 
 import com.google.common.base.Preconditions;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+
 import tg.dtg.events.Event;
 import tg.dtg.graph.Graph;
 import tg.dtg.main.examples.Example;
@@ -19,12 +21,12 @@ public class Main {
     Example example = null;
     if ("stock".equals(args[0])) {
       example = new Stock(nargs);
-    }else {
+    } else {
       System.err.println("not a given case.");
       System.exit(0);
     }
 
-    ArrayList<Window> windowed_events = new ArrayList<>();
+    ArrayList<Window> windowedEvents = new ArrayList<>();
     Iterator<Event> it = example.readInput();
     Query query = example.getQuery();
     long nextW = 0;
@@ -32,17 +34,18 @@ public class Main {
       Event event = it.next();
       while (event.timestamp >= nextW) {
         Window window = new Window(nextW);
-        windowed_events.add(window);
+        windowedEvents.add(window);
         nextW = nextW + query.sl;
       }
-      for (Window window : windowed_events) {
+      for (Window window : windowedEvents) {
         if (window.start <= event.timestamp && event.timestamp < window.start + query.wl) {
           window.events.add(event);
         }
       }
     }
 
-    Graph graph = new Graph(windowed_events.get(0).events,example.getTemplate(),example.getQuery(), example.getConstructors());
+    Graph graph = new Graph(windowedEvents.get(0).events, example.getTemplate(),
+        example.getQuery(), example.getConstructors());
     graph.construct();
   }
 

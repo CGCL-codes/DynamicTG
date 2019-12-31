@@ -1,6 +1,7 @@
 package tg.dtg.main.examples;
 
 import com.google.common.collect.Iterators;
+
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -9,6 +10,7 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+
 import tg.dtg.events.Event;
 import tg.dtg.events.EventTemplate;
 import tg.dtg.graph.construct.Constructor;
@@ -16,7 +18,8 @@ import tg.dtg.query.Query;
 
 public abstract class Example {
 
-  public Example(String[] args) {}
+  public Example(String[] args) {
+  }
 
   public abstract String getName();
 
@@ -42,7 +45,7 @@ public abstract class Example {
     public FileIterator(String path) {
       BufferedReader br = null;
       try {
-         br =  new BufferedReader(new FileReader(path));
+        br = new BufferedReader(new FileReader(path));
       } catch (FileNotFoundException e) {
         e.printStackTrace();
       }

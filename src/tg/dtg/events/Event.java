@@ -1,6 +1,7 @@
 package tg.dtg.events;
 
 import java.util.Arrays;
+
 import tg.dtg.common.values.Value;
 
 public class Event {
@@ -18,8 +19,8 @@ public class Event {
 
   @Override
   public String toString() {
-    return "Event{" + timestamp +
-        ", " + Arrays.toString(values) +
-        '}';
+    return "Event{" + timestamp
+        + ", " + Arrays.toString(values)
+        + '}';
   }
 }

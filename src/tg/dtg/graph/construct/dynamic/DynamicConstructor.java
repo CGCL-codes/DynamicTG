@@ -1,88 +1,75 @@
 package tg.dtg.graph.construct.dynamic;
 
 import com.google.common.base.Preconditions;
+
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.Stack;
 import javax.annotation.Nonnull;
+
 import tg.dtg.common.values.NumericValue;
 import tg.dtg.common.values.Value;
-import tg.dtg.graph.AttributeNode;
-import tg.dtg.graph.EventNode;
+import tg.dtg.events.Event;
+import tg.dtg.graph.AttributeVertex;
+import tg.dtg.graph.EventVertex;
 import tg.dtg.graph.construct.Constructor;
 import tg.dtg.query.Operator;
+import tg.dtg.query.Predicate;
 import tg.dtg.util.Tuple;
 
 public class DynamicConstructor extends Constructor {
 
-  protected final SkipListDynamicAttributeNode head;
+  protected final SkipListDynamicAttributeVertex head;
   protected final Index[] iheads;
-  protected final int MAX_LEVEL;
+  protected final int maxLevel;
 
   private final int[] randGaps;
   private final Random random;
 
   private final NumericValue step;
 
-  protected int maxLevel;
+  protected int curLevel;
 
-  public DynamicConstructor(NumericValue start, NumericValue end, NumericValue step,
-      int MAX_LEVEL) {
+  /**
+   * dynamic constructor by skip list.
+   *
+   * @param start    start of value range
+   * @param end      end of value range
+   * @param step     precision
+   * @param maxLevel max level of the skip list
+   */
+  public DynamicConstructor(Predicate predicate,
+                            NumericValue start, NumericValue end, NumericValue step,
+                            int maxLevel) {
+    super(predicate);
     this.step = step;
-    SkipListDynamicAttributeNode node = new SkipListDynamicAttributeNode(start, end);
-    head = new SkipListDynamicAttributeNode(null, null);
+    SkipListDynamicAttributeVertex node = new SkipListDynamicAttributeVertex(start, end);
+    head = new SkipListDynamicAttributeVertex(null, null);
     head.next = node;
-    this.MAX_LEVEL = MAX_LEVEL;
-    iheads = new Index[MAX_LEVEL];
-    randGaps = new int[MAX_LEVEL];
+    this.maxLevel = maxLevel;
+    iheads = new Index[maxLevel];
+    randGaps = new int[maxLevel];
 
-    for (int i = 0; i < MAX_LEVEL; i++) {
-      randGaps[MAX_LEVEL - i - 1] = 1 << i;
+    for (int i = 0; i < maxLevel; i++) {
+      randGaps[maxLevel - i - 1] = 1 << i;
     }
     random = new Random();
-    maxLevel = 0;
+    curLevel = 0;
   }
 
-  public DynamicConstructor(NumericValue start, NumericValue end, NumericValue step) {
-    this(start, end, step, 12);
+  public DynamicConstructor(Predicate predicate,
+                            NumericValue start, NumericValue end, NumericValue step) {
+    this(predicate, start, end, step, 12);
   }
 
-  /*private DynamicAttributeNode find(NumericValue value) {
-    if(maxLevel == 0) {
-      // in the list
-      return findInList(head.next,null,value);
-    }else {
-      Index prev = iheads[maxLevel - 1];
-      Index index = prev.next;
-
-      while (true) {
-        if(index == null || index.node.start.compareTo(value) >= 0) {
-          if(prev.down != null) {
-            prev = prev.down;
-            index = prev.next;
-          } else {
-            DynamicAttributeNode start = prev.node;
-            DynamicAttributeNode end = null;
-            if(start == head) start = start.next;
-            if(index != null) end = index.node;
-            return findInList(start, end, value);
-          }
-        }else {
-          prev = index;
-          index = index.next;
-        }
-      }
-    }
-  }*/
-
-  private Tuple<Stack<Index>, SkipListDynamicAttributeNode> find(NumericValue value) {
+  private Tuple<Stack<Index>, SkipListDynamicAttributeVertex> find(NumericValue value) {
     Stack<Index> path = new Stack<>();
-    if (maxLevel == 0) {
+    if (curLevel == 0) {
       // in the list
       return Tuple.of(path, findInList(head.next, null, value));
     } else {
-      Index prev = iheads[maxLevel - 1];
+      Index prev = iheads[curLevel - 1];
       Index index = prev.next;
 
       while (true) {
@@ -92,8 +79,8 @@ public class DynamicConstructor extends Constructor {
             prev = prev.down;
             index = prev.next;
           } else {
-            SkipListDynamicAttributeNode start = prev.node;
-            SkipListDynamicAttributeNode end = null;
+            SkipListDynamicAttributeVertex start = prev.node;
+            SkipListDynamicAttributeVertex end = null;
             if (start == head) {
               start = start.next;
             }
@@ -110,13 +97,14 @@ public class DynamicConstructor extends Constructor {
     }
   }
 
-  private SkipListDynamicAttributeNode findInList(SkipListDynamicAttributeNode start, SkipListDynamicAttributeNode end,
-      NumericValue value) {
-    Preconditions.checkArgument(start != head && start.start.compareTo(value) <= 0 &&
-            (end == null || value.compareTo(end.start) < 0),
+  private SkipListDynamicAttributeVertex findInList(SkipListDynamicAttributeVertex start,
+                                                    SkipListDynamicAttributeVertex end,
+                                                    NumericValue value) {
+    Preconditions.checkArgument(start != head && start.start.compareTo(value) <= 0
+            && (end == null || value.compareTo(end.start) < 0),
         "value must be in the range [%s, %s)", start, end);
-    SkipListDynamicAttributeNode prev = start;
-    SkipListDynamicAttributeNode node = prev.next;
+    SkipListDynamicAttributeVertex prev = start;
+    SkipListDynamicAttributeVertex node = prev.next;
     while (node != end) {
       if (node.start.compareTo(value) > 0) {
         return prev;
@@ -127,17 +115,18 @@ public class DynamicConstructor extends Constructor {
     return prev;
   }
 
-  protected SkipListDynamicAttributeNode splitNode(Tuple<Stack<Index>, SkipListDynamicAttributeNode> pathAndNode,
+  protected SkipListDynamicAttributeVertex splitNode(
+      Tuple<Stack<Index>, SkipListDynamicAttributeVertex> pathAndNode,
       NumericValue gap, int flag) {
     // link the node into the list
     NumericValue tgap = (NumericValue) Value.numeric(gap.numericVal() + flag * step.numericVal());
-    SkipListDynamicAttributeNode node = pathAndNode._2;
-    SkipListDynamicAttributeNode nnode = node.split(tgap);
+    SkipListDynamicAttributeVertex node = pathAndNode.right;
+    SkipListDynamicAttributeVertex nnode = node.split(tgap);
     nnode.next = node.next;
     node.next = nnode;
 
     int rnd = random.nextInt(randGaps[0]);
-    Stack<Index> path = pathAndNode._1;
+    Stack<Index> path = pathAndNode.left;
     int l = 1;
     Index dindex = null;
     while (rnd < randGaps[l]) {
@@ -163,22 +152,20 @@ public class DynamicConstructor extends Constructor {
   }
 
   @Override
-  public void link(Value from, Value to, EventNode eventNode, Operator operator) {
-    Preconditions.checkArgument(from instanceof NumericValue && to instanceof NumericValue,
-        "dynamic constructor only support numeric attribute value");
+  public void link(EventVertex eventVertex) {
+    Event event = eventVertex.event;
+    NumericValue tv = (NumericValue) predicate.func.apply(event.get(predicate.rightOperand));
+    Iterator<SkipListDynamicAttributeVertex> tonodes;
+    NumericValue fv = (NumericValue) event.get(predicate.leftOperand);
+    SkipListDynamicAttributeVertex fromNode = find(fv).right;
 
-    NumericValue tv = (NumericValue) to;
-    Iterator<SkipListDynamicAttributeNode> tonodes;
-    NumericValue fv = (NumericValue) from;
-    SkipListDynamicAttributeNode fromNode = find(fv)._2;
-
-    switch (operator) {
+    switch (predicate.op) {
       case eq:
-        tonodes = Collections.singletonList(find(tv)._2).iterator();
+        tonodes = Collections.singletonList(find(tv).right).iterator();
         break;
       case gt:
-        Tuple<Stack<Index>, SkipListDynamicAttributeNode> result = find(tv);
-        SkipListDynamicAttributeNode node = splitNode(result, tv, 1);
+        Tuple<Stack<Index>, SkipListDynamicAttributeVertex> result = find(tv);
+        SkipListDynamicAttributeVertex node = splitNode(result, tv, 1);
         tonodes = node.next.iterator();
         break;
       default:
@@ -186,51 +173,56 @@ public class DynamicConstructor extends Constructor {
         break;
     }
 
-    fromNode.linkToEvent(fv, eventNode);
-    tonodes.forEachRemaining(eventNode::linkAttribute);
+    fromNode.linkToEvent(fv, eventVertex);
+//    tonodes.forEachRemainin;
   }
 
   @Override
-  public Iterator<AttributeNode> attributes() {
-    return new Iterator<AttributeNode>() {
-      SkipListDynamicAttributeNode tail = head.next;
+  public void manage() {
+
+  }
+
+  @Override
+  public Iterator<AttributeVertex> attributes() {
+    return new Iterator<AttributeVertex>() {
+      SkipListDynamicAttributeVertex tail = head.next;
+
       @Override
       public boolean hasNext() {
         return tail != null;
       }
 
       @Override
-      public AttributeNode next() {
-        AttributeNode node =tail;
+      public AttributeVertex next() {
+        AttributeVertex node = tail;
         tail = tail.next;
         return node;
       }
     };
   }
 
-  private static class SkipListDynamicAttributeNode extends
-      DynamicAttributeNode implements
-      Iterable<SkipListDynamicAttributeNode> {
+  private static class SkipListDynamicAttributeVertex extends
+      DynamicAttributeVertex implements
+      Iterable<SkipListDynamicAttributeVertex> {
 
-    SkipListDynamicAttributeNode next;
+    SkipListDynamicAttributeVertex next;
 
-    public SkipListDynamicAttributeNode(NumericValue start, NumericValue end) {
+    public SkipListDynamicAttributeVertex(NumericValue start, NumericValue end) {
       this(start, end, null);
     }
 
-    protected SkipListDynamicAttributeNode(NumericValue start, NumericValue end, OuterEdge edge) {
-      super(start,end,edge);
+    protected SkipListDynamicAttributeVertex(NumericValue start, NumericValue end, OuterEdge edge) {
+      super(start, end, edge);
     }
 
 
-
-      @Override
+    @Override
     @Nonnull
-    public Iterator<SkipListDynamicAttributeNode> iterator() {
+    public Iterator<SkipListDynamicAttributeVertex> iterator() {
       return new DListIterator(this);
     }
 
-    public SkipListDynamicAttributeNode split(NumericValue gap) {
+    public SkipListDynamicAttributeVertex split(NumericValue gap) {
       OuterEdge edge = head.next;
       OuterEdge prev = head;
       while (edge != null && edge.value.compareTo(gap) < 0) {
@@ -240,14 +232,14 @@ public class DynamicConstructor extends Constructor {
       prev.next = null;
       NumericValue oend = end;
       this.end = gap;
-      return new SkipListDynamicAttributeNode(gap, oend, edge);
+      return new SkipListDynamicAttributeVertex(gap, oend, edge);
     }
 
-    private static class DListIterator implements Iterator<SkipListDynamicAttributeNode> {
+    private static class DListIterator implements Iterator<SkipListDynamicAttributeVertex> {
 
-      private SkipListDynamicAttributeNode cur;
+      private SkipListDynamicAttributeVertex cur;
 
-      public DListIterator(SkipListDynamicAttributeNode cur) {
+      public DListIterator(SkipListDynamicAttributeVertex cur) {
         this.cur = cur;
       }
 
@@ -257,8 +249,8 @@ public class DynamicConstructor extends Constructor {
       }
 
       @Override
-      public SkipListDynamicAttributeNode next() {
-        SkipListDynamicAttributeNode node = cur;
+      public SkipListDynamicAttributeVertex next() {
+        SkipListDynamicAttributeVertex node = cur;
         cur = cur.next;
         return node;
       }
@@ -266,29 +258,33 @@ public class DynamicConstructor extends Constructor {
 
     @Override
     public String toString() {
-      return "DynamicAttributeNode" +
-          "[" + start +
-          ", " + end + ')';
+      return "DynamicAttributeNode"
+          + "[" + start
+          + ", " + end + ')';
     }
   }
 
   private static class Index {
 
-    SkipListDynamicAttributeNode node;
+    SkipListDynamicAttributeVertex node;
     Index next;
     Index down;
   }
 
-
-
-  public static String dynamicAttributeNode(DynamicConstructor constructor){
-    SkipListDynamicAttributeNode head = constructor.head;
+  /**
+   * for debug, show all attribute vertices in the constructor.
+   *
+   * @param constructor the constructor
+   * @return the string of attribute vertices
+   */
+  public static String dynamicAttributeNode(DynamicConstructor constructor) {
+    SkipListDynamicAttributeVertex head = constructor.head;
     StringBuilder builder = new StringBuilder();
     builder.append("O");
-    head=head.next;
-    while (head!=null) {
+    head = head.next;
+    while (head != null) {
       builder.append("->").append(head);
-      head=head.next;
+      head = head.next;
     }
     return builder.toString();
   }

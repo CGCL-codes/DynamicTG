@@ -30,6 +30,6 @@ public abstract class Value implements Comparable<Value> {
 
   @Override
   public String toString() {
-    return "Value("+value.toString()+")";
+    return "Value(" + value.toString() + ")";
   }
 }

@@ -2,6 +2,7 @@ package tg.dtg.main.examples;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+
 import tg.dtg.common.values.NumericValue;
 import tg.dtg.common.values.Value;
 import tg.dtg.events.Event;
@@ -18,10 +19,11 @@ public class Stock extends Example {
 
   private final EventTemplate template;
 
-  private final Predicate id_predicate;
-  private final Predicate price_predicate;
+  private final Predicate idPredicate;
+  private final Predicate pricePredicate;
   private final boolean isSimple;
-  private final long wl, sl;
+  private final long wl;
+  private final long sl;
   private final String path;
   private final boolean isInteger;
 
@@ -31,8 +33,8 @@ public class Stock extends Example {
         .addStr("id")
         .addNumeric("price")
         .build();
-    id_predicate = new Predicate(Operator.eq, template.indexOf("id"), -1);
-    price_predicate = new Predicate(Operator.gt, template.indexOf("price"),
+    idPredicate = new Predicate(Operator.eq, template.indexOf("id"), -1);
+    pricePredicate = new Predicate(Operator.gt, template.indexOf("price"),
         template.indexOf("price"));
     path = args[0];
     isSimple = args[1].equals("simple");
@@ -51,11 +53,11 @@ public class Stock extends Example {
   }
 
   private Query simpleStock() {
-    return new Query("S", price_predicate, wl, sl);
+    return new Query("S", pricePredicate, wl, sl);
   }
 
   private Query stock() {
-    LogicalExpression expression = new LogicalExpression(id_predicate, price_predicate,
+    LogicalExpression expression = new LogicalExpression(idPredicate, pricePredicate,
         LogicalOperater.and);
     return new Query("S", expression, wl, sl);
   }
@@ -77,7 +79,9 @@ public class Stock extends Example {
 
   @Override
   public ArrayList<Constructor> getConstructors() {
-    NumericValue start, end, step;
+    NumericValue start;
+    NumericValue end;
+    NumericValue step;
     if (isInteger) {
       start = (NumericValue) Value.numeric(0);
       end = (NumericValue) Value.numeric(50);

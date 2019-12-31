@@ -2,12 +2,22 @@ package tg.dtg.graph.construct;
 
 import java.util.Iterator;
 import tg.dtg.common.values.Value;
-import tg.dtg.graph.AttributeNode;
-import tg.dtg.graph.EventNode;
+import tg.dtg.graph.AttributeVertex;
+import tg.dtg.graph.Edge;
+import tg.dtg.graph.EventVertex;
 import tg.dtg.query.Operator;
+import tg.dtg.query.Predicate;
 
 public abstract class Constructor {
-  public abstract void link(Value from, Value to, EventNode eventNode, Operator operator);
+  protected final Predicate predicate;
 
-  public abstract Iterator<AttributeNode> attributes();
+  protected Constructor(Predicate predicate) {
+    this.predicate = predicate;
+  }
+
+  public abstract void link(EventVertex eventVertex);
+
+  public abstract void manage();
+
+  public abstract Iterator<AttributeVertex> attributes();
 }

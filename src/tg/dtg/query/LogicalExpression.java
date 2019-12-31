@@ -3,10 +3,17 @@ package tg.dtg.query;
 import java.util.ArrayList;
 
 public class LogicalExpression extends Expression {
-  private Expression left, right;
+  private Expression left;
+  private Expression right;
 
   public final LogicalOperater operater;
 
+  /**
+   * create a logical expression.
+   * @param left the left expression
+   * @param right the right expression
+   * @param operater the type of logical operator, "and" or "or"
+   */
   public LogicalExpression(Expression left, Expression right,
       LogicalOperater operater) {
     this.left = left;

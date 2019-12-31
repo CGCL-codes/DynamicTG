@@ -1,6 +1,7 @@
 package tg.dtg.events;
 
 import java.util.ArrayList;
+
 import tg.dtg.common.values.Value;
 import tg.dtg.common.values.Value.ValType;
 
@@ -12,13 +13,27 @@ public class EventTemplate {
     this.attributes = attributes;
   }
 
+  /**
+   * the index of attribute in the template,
+   * or -1 which means the attribute name is not in this template.
+   *
+   * @param name the name of attribute
+   * @return the index of the given name
+   */
   public int indexOf(String name) {
     for (int i = 0; i < attributes.length; i++) {
-      if(name.equals(attributes[i].name)) return i;
+      if (name.equals(attributes[i].name)) {
+        return i;
+      }
     }
     return -1;
   }
 
+  /**
+   * create event from the string.
+   * @param line the string of event
+   * @return event
+   */
   public Event str2event(String line) {
     String[] sps = line.split(" ");
     long timestamp = Long.parseLong(sps[0]);
@@ -30,7 +45,7 @@ public class EventTemplate {
         values[i] = Value.numeric(Double.parseDouble(sps[i + 1]));
       }
     }
-    return new Event(timestamp,values);
+    return new Event(timestamp, values);
   }
 
   public static class Builder {
@@ -38,7 +53,7 @@ public class EventTemplate {
     private ArrayList<Attribute> attributes;
 
     public Builder() {
-      attributes=new ArrayList<>();
+      attributes = new ArrayList<>();
     }
 
     public Builder addStr(String name) {
