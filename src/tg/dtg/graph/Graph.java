@@ -1,40 +1,33 @@
 package tg.dtg.graph;
 
 import com.google.common.collect.Iterators;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
-import tg.dtg.common.values.Value;
 import tg.dtg.events.Event;
 import tg.dtg.events.EventTemplate;
 import tg.dtg.graph.construct.Constructor;
-import tg.dtg.query.Predicate;
 import tg.dtg.query.Query;
 
 public class Graph {
 
   protected final EventTemplate eventTemplate;
   protected final Query query;
-
-  protected List<Event> events;
-
-  protected ArrayList<Predicate> predicates;
-  protected ArrayList<Constructor> constructors;
   protected final ArrayList<EventVertex> eventVertices;
+  protected List<Event> events;
+  protected ArrayList<Constructor> constructors;
 
   /**
    * create a new graph.
    *
-   * @param events        input events
+   * @param events input events
    * @param eventTemplate event template
-   * @param query         query
-   * @param constructors  constructors for graph construction
+   * @param query query
+   * @param constructors constructors for graph construction
    */
   public Graph(List<Event> events,
-               EventTemplate eventTemplate, Query query,
-               ArrayList<Constructor> constructors) {
+      EventTemplate eventTemplate, Query query,
+      ArrayList<Constructor> constructors) {
     this.events = events;
     this.eventTemplate = eventTemplate;
     this.query = query;
@@ -55,12 +48,14 @@ public class Graph {
       EventVertex eventVertex = new EventVertex(event);
       eventVertices.add(eventVertex);
 
-      for (int i = 0; i < predicates.size(); i++) {
-        Predicate predicate = predicates.get(i);
-        Constructor constructor = constructors.get(i);
+      for (Constructor constructor : constructors) {
         constructor.link(eventVertex);
       }
     }
+    for (Constructor constructor : constructors) {
+      constructor.invokeEventsEnd();
+    }
+    System.out.println("finish stream");
   }
 
   protected void manageGraph() {

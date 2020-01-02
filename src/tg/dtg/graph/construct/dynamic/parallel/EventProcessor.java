@@ -1,16 +1,16 @@
 package tg.dtg.graph.construct.dynamic.parallel;
 
+import java.util.Comparator;
+import java.util.TreeSet;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import tg.dtg.common.values.NumericValue;
 import tg.dtg.events.Event;
 import tg.dtg.graph.EventVertex;
 import tg.dtg.query.Predicate;
 
-import java.util.Comparator;
-import java.util.TreeSet;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
-
 public class EventProcessor implements Runnable {
+
   private final BlockingQueue<EventVertex> queue;
   private final Predicate predicate;
   private boolean isRun = true;
@@ -26,16 +26,20 @@ public class EventProcessor implements Runnable {
     toEdges = new TreeSet<>(Comparator.comparing(TupleEdge::getTarget));
   }
 
-  private void stop() {
+  public void stop() {
     isRun = false;
   }
 
   @Override
   public void run() {
     try {
-      while (isRun) {
+      while (true) {
         EventVertex vertex = queue.poll(100, TimeUnit.MILLISECONDS);
-        processVertex(vertex);
+        if (vertex != null) {
+          processVertex(vertex);
+        } else if (!isRun) {
+          break;
+        }
       }
     } catch (InterruptedException e) {
       e.printStackTrace();

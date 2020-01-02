@@ -1,14 +1,15 @@
 package tg.dtg.main.examples;
 
+import com.beust.jcommander.Parameter;
 import java.util.ArrayList;
 import java.util.Iterator;
-
+import javax.annotation.Nonnull;
 import tg.dtg.common.values.NumericValue;
 import tg.dtg.common.values.Value;
 import tg.dtg.events.Event;
 import tg.dtg.events.EventTemplate;
 import tg.dtg.graph.construct.Constructor;
-import tg.dtg.graph.construct.dynamic.DynamicConstructor;
+import tg.dtg.graph.construct.dynamic.parallel.StaticDynamicConstructor;
 import tg.dtg.query.LogicalExpression;
 import tg.dtg.query.LogicalExpression.LogicalOperater;
 import tg.dtg.query.Operator;
@@ -18,16 +19,13 @@ import tg.dtg.query.Query;
 public class Stock extends Example {
 
   private final EventTemplate template;
-
   private final Predicate idPredicate;
   private final Predicate pricePredicate;
   private final boolean isSimple;
-  private final long wl;
-  private final long sl;
-  private final String path;
-  private final boolean isInteger;
-
-  public Stock(String[] args) {
+  private final NumericValue start;
+  private final NumericValue end;
+  private final NumericValue step;
+  public Stock(Argument args) {
     super(args);
     template = new EventTemplate.Builder()
         .addStr("id")
@@ -36,15 +34,18 @@ public class Stock extends Example {
     idPredicate = new Predicate(Operator.eq, template.indexOf("id"), -1);
     pricePredicate = new Predicate(Operator.gt, template.indexOf("price"),
         template.indexOf("price"));
-    path = args[0];
-    isSimple = args[1].equals("simple");
-    wl = Long.parseLong(args[2]);
-    sl = Long.parseLong(args[3]);
-    if (args.length > 4) {
-      isInteger = args[4].equals("int");
-    } else {
-      isInteger = false;
-    }
+    isSimple = args.isSimple;
+
+    String range = args.range.trim();
+    range = range.substring(1, range.length() - 1).trim();
+    String[] sps = range.split(",");
+    start = (NumericValue) Value.numeric(Double.parseDouble(sps[0]));
+    end = (NumericValue) Value.numeric(Double.parseDouble(sps[1]));
+    step = (NumericValue) Value.numeric(Double.parseDouble(sps[2]));
+  }
+
+  static tg.dtg.main.examples.Argument getArgument() {
+    return new Argument();
   }
 
   @Override
@@ -68,6 +69,7 @@ public class Stock extends Example {
   }
 
   @Override
+  @Nonnull
   public Iterator<Event> readInput() {
     return readInputFromFile(path);
   }
@@ -79,19 +81,13 @@ public class Stock extends Example {
 
   @Override
   public ArrayList<Constructor> getConstructors() {
-    NumericValue start;
-    NumericValue end;
-    NumericValue step;
-    if (isInteger) {
-      start = (NumericValue) Value.numeric(0);
-      end = (NumericValue) Value.numeric(50);
-      step = (NumericValue) Value.numeric(1);
+    Constructor pc;
+    if (parallism > 0) {
+      pc = new StaticDynamicConstructor(parallism, pricePredicate, start, end,
+          step);
     } else {
-      start = (NumericValue) Value.numeric(0);
-      end = (NumericValue) Value.numeric(50);
-      step = (NumericValue) Value.numeric(0.01);
+      pc = null;
     }
-    DynamicConstructor pc = new DynamicConstructor(start, end, step);
     ArrayList<Constructor> constructors = new ArrayList<>(2);
     if (!isSimple) {
       constructors.add(null);
@@ -99,5 +95,18 @@ public class Stock extends Example {
       constructors.add(pc);
     }
     return constructors;
+  }
+
+  static class Argument extends tg.dtg.main.examples.Argument {
+
+    @Parameter(names = "-simple", description = "simple query or not")
+    boolean isSimple = true;
+
+    @Parameter(names = "-int", description = "int datas")
+    boolean isInteger = true;
+
+    @Parameter(names = {"-r",
+        "--range"}, description = "range for numeric, in the form of [start,end,step)")
+    String range = "[0,50,1)";
   }
 }

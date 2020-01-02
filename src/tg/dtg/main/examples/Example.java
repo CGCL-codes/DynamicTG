@@ -1,5 +1,7 @@
 package tg.dtg.main.examples;
 
+import com.beust.jcommander.JCommander;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 
 import java.io.BufferedReader;
@@ -8,23 +10,35 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import javax.annotation.Nonnull;
 import tg.dtg.events.Event;
 import tg.dtg.events.EventTemplate;
 import tg.dtg.graph.construct.Constructor;
 import tg.dtg.query.Query;
 
 public abstract class Example {
+  protected final String path;
+  protected final long wl;
+  protected final long sl;
+  protected final int parallism;
 
-  public Example(String[] args) {
+  public Example(Argument args) {
+    this.path = args.path;
+    this.wl = args.wl;
+    this.sl = args.sl;
+    this.parallism = args.parallism;
   }
 
   public abstract String getName();
 
   public abstract Query getQuery();
 
+  @Nonnull
   public abstract Iterator<Event> readInput();
 
   public abstract EventTemplate getTemplate();
@@ -75,6 +89,56 @@ public abstract class Example {
       } else {
         throw new NoSuchElementException();
       }
+    }
+  }
+
+  public static Example getExample(String[] args) {
+    Preconditions.checkArgument(args.length > 1, "must specify example name");
+    Argument argument;
+    String[] nargs = Arrays.copyOfRange(args,1,args.length);
+    if ("stock".equals(args[0])) {
+      argument = Stock.getArgument();
+      JCommander.newBuilder()
+          .addObject(argument)
+          .build()
+          .parse(nargs);
+      return new Stock((Stock.Argument) argument);
+    }else {
+      argument = new Argument();
+      return new EmptyExample(argument);
+    }
+  }
+
+  private static class EmptyExample extends Example {
+
+    public EmptyExample(Argument args) {
+      super(args);
+    }
+
+    @Override
+    public String getName() {
+      return null;
+    }
+
+    @Override
+    public Query getQuery() {
+      return null;
+    }
+
+    @Nonnull
+    @Override
+    public Iterator<Event> readInput() {
+      return Collections.emptyIterator();
+    }
+
+    @Override
+    public EventTemplate getTemplate() {
+      return null;
+    }
+
+    @Override
+    public ArrayList<Constructor> getConstructors() {
+      return null;
     }
   }
 }

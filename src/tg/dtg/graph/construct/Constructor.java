@@ -1,11 +1,10 @@
 package tg.dtg.graph.construct;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Iterator;
-import tg.dtg.common.values.Value;
 import tg.dtg.graph.AttributeVertex;
-import tg.dtg.graph.Edge;
 import tg.dtg.graph.EventVertex;
-import tg.dtg.query.Operator;
 import tg.dtg.query.Predicate;
 
 public abstract class Constructor {
@@ -17,7 +16,11 @@ public abstract class Constructor {
 
   public abstract void link(EventVertex eventVertex);
 
+  public void invokeEventsEnd(){}
+
   public abstract void manage();
 
   public abstract Iterator<AttributeVertex> attributes();
+
+  public void close() { }
 }

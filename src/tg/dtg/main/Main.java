@@ -1,30 +1,17 @@
 package tg.dtg.main;
 
-import com.google.common.base.Preconditions;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
-
 import tg.dtg.events.Event;
 import tg.dtg.graph.Graph;
 import tg.dtg.main.examples.Example;
-import tg.dtg.main.examples.Stock;
 import tg.dtg.query.Query;
+import tg.dtg.util.Parallel;
 
 public class Main {
 
   public static void main(String[] args) {
-    Preconditions.checkArgument(args.length > 1);
-    String[] nargs = Arrays.copyOfRange(args, 1, args.length);
-
-    Example example = null;
-    if ("stock".equals(args[0])) {
-      example = new Stock(nargs);
-    } else {
-      System.err.println("not a given case.");
-      System.exit(0);
-    }
+    Example example = Example.getExample(args);
 
     ArrayList<Window> windowedEvents = new ArrayList<>();
     Iterator<Event> it = example.readInput();
@@ -47,9 +34,12 @@ public class Main {
     Graph graph = new Graph(windowedEvents.get(0).events, example.getTemplate(),
         example.getQuery(), example.getConstructors());
     graph.construct();
+
+    Parallel.getInstance().close();
   }
 
   static class Window {
+
     final long start;
     final ArrayList<Event> events;
 

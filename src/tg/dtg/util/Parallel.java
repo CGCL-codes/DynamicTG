@@ -5,6 +5,7 @@ import com.google.common.base.Preconditions;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class Parallel {
   private final ExecutorService executor;
@@ -26,5 +27,14 @@ public class Parallel {
 
   public ExecutorService getExecutor() {
     return executor;
+  }
+
+  public void close() {
+    try {
+      executor.shutdown();
+      executor.awaitTermination(1, TimeUnit.DAYS);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
   }
 }
