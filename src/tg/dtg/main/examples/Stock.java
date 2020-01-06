@@ -9,6 +9,7 @@ import tg.dtg.common.values.Value;
 import tg.dtg.events.Event;
 import tg.dtg.events.EventTemplate;
 import tg.dtg.graph.construct.Constructor;
+import tg.dtg.graph.construct.dynamic.SeqDynamicConstructor;
 import tg.dtg.graph.construct.dynamic.parallel.StaticDynamicConstructor;
 import tg.dtg.query.LogicalExpression;
 import tg.dtg.query.LogicalExpression.LogicalOperater;
@@ -25,6 +26,7 @@ public class Stock extends Example {
   private final NumericValue start;
   private final NumericValue end;
   private final NumericValue step;
+
   public Stock(Argument args) {
     super(args);
     template = new EventTemplate.Builder()
@@ -42,9 +44,10 @@ public class Stock extends Example {
     start = (NumericValue) Value.numeric(Double.parseDouble(sps[0]));
     end = (NumericValue) Value.numeric(Double.parseDouble(sps[1]));
     step = (NumericValue) Value.numeric(Double.parseDouble(sps[2]));
+    setPrecision(step.numericVal());
   }
 
-  static tg.dtg.main.examples.Argument getArgument() {
+  static Config getArgument() {
     return new Argument();
   }
 
@@ -80,13 +83,19 @@ public class Stock extends Example {
   }
 
   @Override
+  protected String parameters() {
+    return "simple: " + isSimple + "\n"
+        + "range: " + "[" + start + ", " + end + ", " + step + ")";
+  }
+
+  @Override
   public ArrayList<Constructor> getConstructors() {
     Constructor pc;
     if (parallism > 0) {
       pc = new StaticDynamicConstructor(parallism, pricePredicate, start, end,
           step);
     } else {
-      pc = null;
+      pc = new SeqDynamicConstructor(pricePredicate,start,end,step);
     }
     ArrayList<Constructor> constructors = new ArrayList<>(2);
     if (!isSimple) {
@@ -97,13 +106,10 @@ public class Stock extends Example {
     return constructors;
   }
 
-  static class Argument extends tg.dtg.main.examples.Argument {
+  static class Argument extends Config {
 
     @Parameter(names = "-simple", description = "simple query or not")
-    boolean isSimple = true;
-
-    @Parameter(names = "-int", description = "int datas")
-    boolean isInteger = true;
+    boolean isSimple;
 
     @Parameter(names = {"-r",
         "--range"}, description = "range for numeric, in the form of [start,end,step)")

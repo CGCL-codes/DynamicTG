@@ -6,9 +6,10 @@ import tg.dtg.common.values.NumericValue;
 import tg.dtg.graph.AttributeVertex;
 import tg.dtg.graph.EventVertex;
 
-public class RangeAttributeVertex implements AttributeVertex {
-  private final Range<NumericValue> range;
-  private final ArrayList<EventVertex> vertices;
+public class RangeAttributeVertex implements AttributeVertex, Comparable<RangeAttributeVertex> {
+
+  protected final ArrayList<EventVertex> vertices;
+  protected Range<NumericValue> range;
 
   public RangeAttributeVertex(
       Range<NumericValue> range) {
@@ -17,7 +18,7 @@ public class RangeAttributeVertex implements AttributeVertex {
   }
 
   public void linkToEvent(EventVertex eventVertex) {
-    linkToEvent(null,eventVertex);
+    linkToEvent(null, eventVertex);
   }
 
   @Override
@@ -29,10 +30,19 @@ public class RangeAttributeVertex implements AttributeVertex {
     return range;
   }
 
+  public void setRange(Range<NumericValue> range) {
+    this.range = range;
+  }
+
   @Override
   public String toString() {
-    return "RangeAttributeVertex{" +
-        "range=" + range +
-        '}';
+    return "RangeAttributeVertex{"
+        + "range=" + range
+        + '}';
+  }
+
+  @Override
+  public int compareTo(RangeAttributeVertex o) {
+    return range.lowerEndpoint().compareTo(o.range.lowerEndpoint());
   }
 }

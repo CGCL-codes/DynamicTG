@@ -1,14 +1,15 @@
 package tg.dtg.graph.construct;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.Iterator;
 import tg.dtg.graph.AttributeVertex;
 import tg.dtg.graph.EventVertex;
 import tg.dtg.query.Predicate;
 
 public abstract class Constructor {
+
   protected final Predicate predicate;
+  protected int countF;
+  protected int countT;
 
   protected Constructor(Predicate predicate) {
     this.predicate = predicate;
@@ -16,11 +17,25 @@ public abstract class Constructor {
 
   public abstract void link(EventVertex eventVertex);
 
-  public void invokeEventsEnd(){}
+  public void invokeEventsEnd() {
+  }
 
   public abstract void manage();
 
   public abstract Iterator<AttributeVertex> attributes();
 
-  public void close() { }
+  public int countAttr() {
+    return 0;
+  }
+
+  public int countFrom() {
+    return countF;
+  }
+
+  public int countTo() {
+    return countT;
+  }
+
+  public void close() {
+  }
 }

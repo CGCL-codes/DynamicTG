@@ -1,5 +1,7 @@
 package tg.dtg.graph;
 
+import static tg.dtg.util.Global.log;
+
 import com.google.common.collect.Iterators;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -44,10 +46,10 @@ public class Graph {
   }
 
   protected void processInputStream() {
+    log("begin graph construction, events " + events.size());
     for (Event event : events) {
       EventVertex eventVertex = new EventVertex(event);
       eventVertices.add(eventVertex);
-
       for (Constructor constructor : constructors) {
         constructor.link(eventVertex);
       }
@@ -55,13 +57,22 @@ public class Graph {
     for (Constructor constructor : constructors) {
       constructor.invokeEventsEnd();
     }
-    System.out.println("finish stream");
+    log("finish stream");
   }
 
   protected void manageGraph() {
     for (Constructor constructor : constructors) {
       constructor.manage();
     }
+    log("finish manage");
+    System.out.println("events: " + eventVertices.size() + "\n"
+        + "attrs: " + constructors.stream().mapToInt(Constructor::countAttr).reduce(Integer::sum)
+        .getAsInt() + "\n"
+        + "from edges: " + constructors.stream().mapToInt(Constructor::countFrom)
+        .reduce(Integer::sum).getAsInt() + "\n"
+        + "to edges: " + constructors.stream().mapToInt(Constructor::countTo).reduce(Integer::sum)
+        .getAsInt()
+    );
   }
 
   /**

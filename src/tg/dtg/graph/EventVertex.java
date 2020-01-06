@@ -6,6 +6,7 @@ import java.util.Map;
 import tg.dtg.events.Event;
 
 public class EventVertex implements Vertex {
+
   public final Event event;
 
   private final Map<Character, ArrayList<AttributeVertex>> edges;
@@ -17,18 +18,19 @@ public class EventVertex implements Vertex {
 
   public void linkToAttr(char c, AttributeVertex vertex) {
     ArrayList<AttributeVertex> egs;
-    if(!edges.containsKey(c)){
+    if (!edges.containsKey(c)) {
       egs = new ArrayList<>();
-      edges.put(c,egs);
+      edges.put(c, egs);
+    } else {
+      egs = edges.get(c);
     }
-    else egs = edges.get(c);
     egs.add(vertex);
   }
 
   @Override
   public String toString() {
-    return "EventVertex{" +
-        "event=" + event +
-        '}';
+    return "EventVertex{"
+        + "event=" + event
+        + '}';
   }
 }

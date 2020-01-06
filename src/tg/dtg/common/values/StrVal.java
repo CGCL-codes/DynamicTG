@@ -1,6 +1,6 @@
 package tg.dtg.common.values;
 
-import java.util.Objects;
+import javax.annotation.Nonnull;
 
 public class StrVal extends Value {
 
@@ -9,13 +9,17 @@ public class StrVal extends Value {
   }
 
   @Override
-  public int compareTo(Value o) {
-    Objects.requireNonNull(o);
+  public int compareTo(@Nonnull Value o) {
     if (o instanceof StrVal) {
       String t = (String) value;
       return t.compareTo((String) o.value);
     } else {
       throw new IllegalArgumentException("must be string");
     }
+  }
+
+  @Override
+  public int hashCode() {
+    return value.hashCode();
   }
 }

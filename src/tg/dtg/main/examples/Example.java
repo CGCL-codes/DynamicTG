@@ -3,7 +3,6 @@ package tg.dtg.main.examples;
 import com.beust.jcommander.JCommander;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
-
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -14,29 +13,102 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-
+import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 import tg.dtg.events.Event;
 import tg.dtg.events.EventTemplate;
+import tg.dtg.graph.Graph;
 import tg.dtg.graph.construct.Constructor;
 import tg.dtg.query.Query;
+import tg.dtg.util.Global;
 
 public abstract class Example {
+
   protected final String path;
   protected final long wl;
   protected final long sl;
   protected final int parallism;
+  protected final int numWindow;
 
-  public Example(Argument args) {
+  public Example(Config args) {
     this.path = args.path;
     this.wl = args.wl;
     this.sl = args.sl;
     this.parallism = args.parallism;
+    if (parallism > 0) {
+      Global.initParallel(parallism);
+    }
+    numWindow = 1;
   }
+
+  public static Example getExample(String[] args) {
+    Preconditions.checkArgument(args.length > 0, "must specify example name");
+    Config config;
+    String[] nargs = Arrays.copyOfRange(args, 1, args.length);
+    if ("stock".equals(args[0])) {
+      config = Stock.getArgument();
+      JCommander.newBuilder()
+          .addObject(config)
+          .build()
+          .parse(nargs);
+      return new Stock((Stock.Argument) config);
+    } else {
+      config = new Config();
+      return new EmptyExample(config);
+    }
+  }
+
+  public void start() {
+    String parameters = "************************************\n"
+        + "name: " + getName() + "\n"
+        + "input events: " + path + "\n"
+        + "window: " + wl + ", " + sl + "\n"
+        + "parallism: " + parallism + "\n"
+        + parameters() + "\n"
+        + "************************************";
+    System.out.println(parameters);
+
+    ArrayList<Window> windowedEvents = windowEvents();
+    Graph graph = new Graph(windowedEvents.get(0).events, getTemplate(),
+        getQuery(), getConstructors());
+    graph.construct();
+
+    if (parallism > 0) {
+      Global.close(100L * (wl + sl * (numWindow - 1)), TimeUnit.MILLISECONDS);
+    }
+  }
+
+  private ArrayList<Window> windowEvents() {
+    ArrayList<Window> windowedEvents = new ArrayList<>();
+    Iterator<Event> it = readInput();
+    Query query = getQuery();
+    long nextW = 0;
+    while (it.hasNext()) {
+      Event event = it.next();
+      while (event.timestamp >= nextW) {
+        Window window = new Window(nextW);
+        windowedEvents.add(window);
+        nextW = nextW + query.sl;
+      }
+      for (Window window : windowedEvents) {
+        if (window.start <= event.timestamp && event.timestamp < window.start + query.wl) {
+          window.events.add(event);
+        }
+      }
+    }
+    return windowedEvents;
+  }
+
+  protected abstract String parameters();
 
   public abstract String getName();
 
   public abstract Query getQuery();
+
+  protected void setPrecision(double... precisions) {
+    Preconditions.checkArgument(precisions.length > 0);
+    Global.initValue(Arrays.stream(precisions).min().getAsDouble());
+  }
 
   @Nonnull
   public abstract Iterator<Event> readInput();
@@ -92,32 +164,20 @@ public abstract class Example {
     }
   }
 
-  public static Example getExample(String[] args) {
-    Preconditions.checkArgument(args.length > 1, "must specify example name");
-    Argument argument;
-    String[] nargs = Arrays.copyOfRange(args,1,args.length);
-    if ("stock".equals(args[0])) {
-      argument = Stock.getArgument();
-      JCommander.newBuilder()
-          .addObject(argument)
-          .build()
-          .parse(nargs);
-      return new Stock((Stock.Argument) argument);
-    }else {
-      argument = new Argument();
-      return new EmptyExample(argument);
-    }
-  }
-
   private static class EmptyExample extends Example {
 
-    public EmptyExample(Argument args) {
+    public EmptyExample(Config args) {
       super(args);
     }
 
     @Override
+    protected String parameters() {
+      return "";
+    }
+
+    @Override
     public String getName() {
-      return null;
+      return "empty";
     }
 
     @Override

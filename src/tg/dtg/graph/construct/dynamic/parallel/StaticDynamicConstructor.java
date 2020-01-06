@@ -1,53 +1,51 @@
 package tg.dtg.graph.construct.dynamic.parallel;
 
+import static tg.dtg.util.Global.log;
+
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Range;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Iterator;
+import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
 import tg.dtg.common.values.NumericValue;
 import tg.dtg.common.values.Value;
 import tg.dtg.graph.AttributeVertex;
 import tg.dtg.graph.EventVertex;
-import tg.dtg.graph.construct.Constructor;
+import tg.dtg.graph.construct.dynamic.DynamicConstructor;
 import tg.dtg.graph.construct.dynamic.RangeAttributeVertex;
 import tg.dtg.query.Predicate;
+import tg.dtg.util.Global;
 import tg.dtg.util.MergedIterator;
-import tg.dtg.util.Parallel;
 
-public class StaticDynamicConstructor extends Constructor {
+public class StaticDynamicConstructor extends DynamicConstructor {
 
   private final EventProcessor[] processors;
   private final BlockingQueue<EventVertex> queue;
-  private final NumericValue start;
-  private final NumericValue end;
-  private final NumericValue step;
+
   private Future<?>[] futures;
   private ArrayList<RangeAttributeVertex> vertices;
 
   public StaticDynamicConstructor(int parallism, Predicate predicate,
       NumericValue start, NumericValue end,
       NumericValue step) {
-    super(predicate);
-    ExecutorService executor = Parallel.getInstance().getExecutor();
+    super(predicate, start, end, step);
+    ExecutorService executor = Global.getExecutor();
     queue = new LinkedBlockingQueue<>();
     processors = new EventProcessor[parallism];
     for (int i = 0; i < processors.length; i++) {
-      processors[i] = new EventProcessor(queue, predicate);
+      processors[i] = new EventProcessor(queue, predicate, cmp);
     }
     futures = new Future[parallism];
     for (int i = 0; i < processors.length; i++) {
       futures[i] = executor.submit(processors[i]);
     }
-    this.start = start;
-    this.end = end;
-    this.step = step;
   }
 
   @Override
@@ -78,18 +76,18 @@ public class StaticDynamicConstructor extends Constructor {
 
     for (EventProcessor processor : processors) {
       its.add(processor.getGaps().iterator());
-      fromtIts.add(processor.getFromEdges().iterator());
-      toIts.add(processor.getToEdges().iterator());
+      fromtIts.add(processor.getFromEdges());
+      toIts.add(processor.getToEdges());
     }
 
-    System.out.println("mange ranges");
+    log("mange ranges");
     vertices = mergeGaps1(its);
 
-    System.out.println("manage from edges");
+    log("manage from edges");
     // manage edges
     Iterator<TupleEdge<NumericValue, EventVertex, Object>> fromEdges = new MergedIterator<>(
         fromtIts,
-        Comparator.comparing(TupleEdge::getSource));
+        Ordering.from(cmp).onResultOf(TupleEdge::getSource));
     int i = 0;
     while (fromEdges.hasNext()) {
       TupleEdge<NumericValue, EventVertex, Object> edge = fromEdges.next();
@@ -97,14 +95,19 @@ public class StaticDynamicConstructor extends Constructor {
         i++;
       }
       vertices.get(i).linkToEvent(edge.getTarget());
+      countF += 1;
     }
 
-    System.out.println("manage to edges");
+    log("manage to edges");
     Iterator<TupleEdge<EventVertex, NumericValue, Object>> toEdges = new MergedIterator<>(toIts,
-        Comparator.comparing(TupleEdge::getTarget));
+        //Comparator.comparing(TupleEdge::getTarget));
+        Ordering.from(cmp).onResultOf(TupleEdge::getTarget));
     i = 0;
+    int count = 0;
+
     while (toEdges.hasNext()) {
       TupleEdge<EventVertex, NumericValue, Object> edge = toEdges.next();
+      count++;
       while (!vertices.get(i).getRange().contains(edge.getTarget())) {
         i++;
       }
@@ -112,6 +115,7 @@ public class StaticDynamicConstructor extends Constructor {
         case gt:
           for (int j = i + 1; j < vertices.size(); j++) {
             edge.getSource().linkToAttr(predicate.tag, vertices.get(j));
+            countT++;
           }
           break;
         case eq:
@@ -121,17 +125,18 @@ public class StaticDynamicConstructor extends Constructor {
           break;
       }
     }
+    System.out.println("raw to edges: " + count);
   }
 
   private ArrayList<RangeAttributeVertex> mergeGaps1(ArrayList<Iterator<NumericValue>> its) {
     NumericValue lower = this.start;
     NumericValue prevGap = null;
     ArrayList<RangeAttributeVertex> ranges = new ArrayList<>();
-    MergedIterator<NumericValue> it = new MergedIterator<>(its, Ordering.natural());
+    MergedIterator<NumericValue> it = new MergedIterator<>(its, cmp);
     Range<NumericValue> range;
     while (it.hasNext()) {
       NumericValue gap = it.next();
-      if (prevGap != null && gap.compareTo(prevGap) == 0) {
+      if (prevGap != null && cmp.compare(gap, prevGap) == 0) {
         continue;
       }
       switch (predicate.op) {
@@ -160,6 +165,11 @@ public class StaticDynamicConstructor extends Constructor {
         break;
     }
     return ranges;
+  }
+
+  @Override
+  public int countAttr() {
+    return vertices.size();
   }
 
   @Override
