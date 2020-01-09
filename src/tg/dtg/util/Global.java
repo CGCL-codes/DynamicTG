@@ -15,12 +15,14 @@ public final class Global {
 
   // parallel configs
   private static boolean isSetParallel = false;
+  private static int parallism;
   private static ExecutorService executor;
 
   public static void initParallel(int parallism) {
     if (isSetParallel) {
       throw new DuplicateSetGlobalError("parallel");
     }
+    Global.parallism = parallism;
     executor = Executors.newFixedThreadPool(parallism);
     isSetParallel = true;
   }
@@ -32,6 +34,10 @@ public final class Global {
     Global.precison = precison;
     DEFAULT_NUMERIC_COMPARATOR = numericValueComparator(precison / 1000);
     isSetValueConfig = true;
+  }
+
+  public static int getParallism() {
+    return parallism;
   }
 
   public static ExecutorService getExecutor() {
@@ -49,6 +55,16 @@ public final class Global {
 
   public static void log(String s) {
     System.out.println(s + " time " + System.currentTimeMillis());
+  }
+
+  public static int tableSizeFor(int cap) {
+    int n = cap - 1;
+    n |= n >>> 1;
+    n |= n >>> 2;
+    n |= n >>> 4;
+    n |= n >>> 8;
+    n |= n >>> 16;
+    return (n < 0) ? 1 : (n >= Integer.MAX_VALUE) ? Integer.MAX_VALUE : n + 1;
   }
 
   public static Comparator<NumericValue> numericValueComparator(double step) {

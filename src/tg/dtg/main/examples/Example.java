@@ -29,6 +29,7 @@ public abstract class Example {
   protected final long sl;
   protected final int parallism;
   protected final int numWindow;
+  protected final boolean isStatic;
 
   public Example(Config args) {
     this.path = args.path;
@@ -39,6 +40,7 @@ public abstract class Example {
       Global.initParallel(parallism);
     }
     numWindow = 1;
+    this.isStatic = args.isStatic;
   }
 
   public static Example getExample(String[] args) {
@@ -90,9 +92,14 @@ public abstract class Example {
         windowedEvents.add(window);
         nextW = nextW + query.sl;
       }
-      for (Window window : windowedEvents) {
-        if (window.start <= event.timestamp && event.timestamp < window.start + query.wl) {
-          window.events.add(event);
+      int i = 0;
+      while (!(windowedEvents.get(i).start <= event.timestamp
+          && event.timestamp < windowedEvents.get(i).start + query.wl)) i++;
+      if(i >= numWindow) break;
+      for(;i<windowedEvents.size();i++) {
+        if(windowedEvents.get(i).start <= event.timestamp
+            && event.timestamp < windowedEvents.get(i).start + query.wl){
+          windowedEvents.get(i).events.add(event);
         }
       }
     }

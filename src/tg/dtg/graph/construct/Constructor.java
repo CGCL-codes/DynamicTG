@@ -1,5 +1,6 @@
 package tg.dtg.graph.construct;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import tg.dtg.graph.AttributeVertex;
 import tg.dtg.graph.EventVertex;
@@ -15,6 +16,7 @@ public abstract class Constructor {
     this.predicate = predicate;
   }
 
+  public abstract void parallelLink(ArrayList<Iterator<EventVertex>> iterators);
   public abstract void link(EventVertex eventVertex);
 
   public void invokeEventsEnd() {

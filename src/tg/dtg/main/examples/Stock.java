@@ -9,8 +9,9 @@ import tg.dtg.common.values.Value;
 import tg.dtg.events.Event;
 import tg.dtg.events.EventTemplate;
 import tg.dtg.graph.construct.Constructor;
-import tg.dtg.graph.construct.dynamic.SeqDynamicConstructor;
-import tg.dtg.graph.construct.dynamic.parallel.StaticDynamicConstructor;
+import tg.dtg.graph.construct.dynamic.sequential.SeqDynamicConstructor;
+import tg.dtg.graph.construct.dynamic.parallel.ParallelStaticDynamicConstructor;
+import tg.dtg.graph.construct.dynamic.sequential.SeqStaticDynamicConstructor;
 import tg.dtg.query.LogicalExpression;
 import tg.dtg.query.LogicalExpression.LogicalOperater;
 import tg.dtg.query.Operator;
@@ -92,10 +93,11 @@ public class Stock extends Example {
   public ArrayList<Constructor> getConstructors() {
     Constructor pc;
     if (parallism > 0) {
-      pc = new StaticDynamicConstructor(parallism, pricePredicate, start, end,
+      pc = new ParallelStaticDynamicConstructor(parallism, pricePredicate, start, end,
           step);
     } else {
-      pc = new SeqDynamicConstructor(pricePredicate,start,end,step);
+      if(isStatic) pc = new SeqStaticDynamicConstructor(pricePredicate, start, end, step);
+      else pc = new SeqDynamicConstructor(pricePredicate,start,end,step);
     }
     ArrayList<Constructor> constructors = new ArrayList<>(2);
     if (!isSimple) {

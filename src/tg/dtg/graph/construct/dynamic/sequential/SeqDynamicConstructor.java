@@ -1,4 +1,6 @@
-package tg.dtg.graph.construct.dynamic;
+package tg.dtg.graph.construct.dynamic.sequential;
+
+import static tg.dtg.util.Global.log;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Ordering;
@@ -7,20 +9,21 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 import tg.dtg.common.values.NumericValue;
 import tg.dtg.common.values.Value;
 import tg.dtg.events.Event;
 import tg.dtg.graph.AttributeVertex;
 import tg.dtg.graph.EventVertex;
+import tg.dtg.graph.construct.dynamic.KeySortedMultimap;
+import tg.dtg.graph.construct.dynamic.RangeAttributeVertex;
 import tg.dtg.graph.construct.dynamic.parallel.TupleEdge;
 import tg.dtg.query.Predicate;
 
-public class SeqDynamicConstructor extends DynamicConstructor {
+public class SeqDynamicConstructor extends SequentialDynamicConstructor {
 
   protected final TreeMap<NumericValue, RangeAttributeVertex> vertices;
   protected final KeySortedMultimap<NumericValue,
-      TupleEdge<NumericValue, EventVertex, Object>> fromEdges;
+        TupleEdge<NumericValue, EventVertex, Object>> fromEdges;
   protected final KeySortedMultimap<RangeAttributeVertex,
       TupleEdge<EventVertex, RangeAttributeVertex, Object>> toEdges;
 
@@ -99,6 +102,7 @@ public class SeqDynamicConstructor extends DynamicConstructor {
   @Override
   public void manage() {
     // manage from edges
+    log("manage from edges");
     Iterator<TupleEdge<NumericValue, EventVertex, Object>> fromIt = fromEdges.valueIterator();
     Iterator<RangeAttributeVertex> it = vertices.values().iterator();
     RangeAttributeVertex vertex = it.next();
@@ -116,6 +120,7 @@ public class SeqDynamicConstructor extends DynamicConstructor {
       countF++;
     }
 
+    log("manage to edges");
     // manage to edges
     Iterator<TupleEdge<EventVertex, RangeAttributeVertex, Object>> tit = toEdges.valueIterator();
     TupleEdge<EventVertex, RangeAttributeVertex, Object> tedge;

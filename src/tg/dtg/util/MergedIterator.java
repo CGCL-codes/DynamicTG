@@ -6,7 +6,7 @@ import java.util.PriorityQueue;
 
 public class MergedIterator<E> implements Iterator<E> {
 
-  private final PriorityQueue<Tuple<E, Iterator<E>>> queue;
+  protected final PriorityQueue<Tuple<E, Iterator<E>>> queue;
 
   public MergedIterator(Iterable<Iterator<E>> iterators, Comparator<E> cmp) {
     queue = new PriorityQueue<>(2, (t1, t2) -> cmp.compare(t1.left, t2.left));

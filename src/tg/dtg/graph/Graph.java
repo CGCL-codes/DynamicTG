@@ -1,5 +1,6 @@
 package tg.dtg.graph;
 
+import static tg.dtg.util.Global.getParallism;
 import static tg.dtg.util.Global.log;
 
 import com.google.common.collect.Iterators;
@@ -9,6 +10,7 @@ import java.util.List;
 import tg.dtg.events.Event;
 import tg.dtg.events.EventTemplate;
 import tg.dtg.graph.construct.Constructor;
+import tg.dtg.graph.construct.dynamic.parallel.ParallelDynamicConstructor;
 import tg.dtg.query.Query;
 
 public class Graph {
@@ -46,12 +48,31 @@ public class Graph {
   }
 
   protected void processInputStream() {
+    for(Event event: events) {
+      eventVertices.add(new EventVertex(event));
+    }
+    ArrayList<Constructor> parallels = new ArrayList<>();
+    ArrayList<Constructor> sequentials = new ArrayList<>();
+    for(Constructor constructor:constructors) {
+      if(constructor instanceof ParallelDynamicConstructor) parallels.add(constructor);
+      else sequentials.add(constructor);
+    }
     log("begin graph construction, events " + events.size());
-    for (Event event : events) {
-      EventVertex eventVertex = new EventVertex(event);
-      eventVertices.add(eventVertex);
-      for (Constructor constructor : constructors) {
-        constructor.link(eventVertex);
+    if(!sequentials.isEmpty()) {
+      for (EventVertex eventVertex : eventVertices) {
+        for (Constructor constructor : sequentials) {
+          constructor.link(eventVertex);
+        }
+      }
+    }
+    if(!parallels.isEmpty()) {
+      int parallism = getParallism();
+      for(Constructor constructor: parallels) {
+        ArrayList<Iterator<EventVertex>> iterators = new ArrayList<>();
+        for (int i = 0; i < parallism; i++) {
+          iterators.add(new ParallelInputInterator(eventVertices,i,parallism));
+        }
+        constructor.parallelLink(iterators);
       }
     }
     for (Constructor constructor : constructors) {
@@ -92,5 +113,29 @@ public class Graph {
 
   public ArrayList<EventVertex> events() {
     return eventVertices;
+  }
+
+  private static class ParallelInputInterator implements Iterator<EventVertex> {
+    private final ArrayList<EventVertex> source;
+    private  int index;
+    private final int step;
+
+    private ParallelInputInterator(ArrayList<EventVertex> source, int startIndex, int step) {
+      this.source = source;
+      this.index = startIndex;
+      this.step = step;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return index < source.size();
+    }
+
+    @Override
+    public EventVertex next() {
+      EventVertex event = source.get(index);
+      index += step;
+      return event;
+    }
   }
 }

@@ -1,5 +1,6 @@
 package tg.dtg.graph.construct.dynamic.parallel;
 
+import com.google.common.base.Preconditions;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.TreeSet;
@@ -13,40 +14,36 @@ import tg.dtg.query.Predicate;
 
 public class EventProcessor implements Runnable {
 
-  private final BlockingQueue<EventVertex> queue;
+  private Iterator<EventVertex> vertices;
   private final Predicate predicate;
-  private boolean isRun = true;
   private TreeSet<NumericValue> gaps;
   private KeySortedMultimap<NumericValue, TupleEdge<NumericValue, EventVertex, Object>> fromEdges;
   private KeySortedMultimap<NumericValue, TupleEdge<EventVertex, NumericValue, Object>> toEdges;
 
-  public EventProcessor(BlockingQueue<EventVertex> queue, Predicate predicate,
+  public EventProcessor(Iterator<EventVertex> vertices, Predicate predicate,
       Comparator<NumericValue> cmp) {
-    this.queue = queue;
+    this.vertices = vertices;
     this.predicate = predicate;
     gaps = new TreeSet<>(cmp);
     fromEdges = new KeySortedMultimap<>(cmp);
     toEdges = new KeySortedMultimap<>(cmp);
   }
 
-  public void stop() {
-    isRun = false;
+  public EventProcessor(Predicate predicate,
+      Comparator<NumericValue> cmp) {
+    this(null, predicate, cmp);
   }
 
   @Override
   public void run() {
-    try {
-      while (true) {
-        EventVertex vertex = queue.poll(100, TimeUnit.MILLISECONDS);
-        if (vertex != null) {
-          processVertex(vertex);
-        } else if (!isRun) {
-          break;
-        }
-      }
-    } catch (InterruptedException e) {
-      e.printStackTrace();
+    Preconditions.checkNotNull(vertices);
+    while (vertices.hasNext()) {
+      processVertex(vertices.next());
     }
+  }
+
+  public void setVertices(Iterator<EventVertex> vertices) {
+    this.vertices = vertices;
   }
 
   private void processVertex(EventVertex vertex) {

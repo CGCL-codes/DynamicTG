@@ -16,7 +16,8 @@ public class Config {
   @Parameter(names = {"-p", "--parallism"}, description = "parallism")
   int parallism = -1;
 
-
+  @Parameter(names = {"-static"}, description = "use static constructor")
+  boolean isStatic;
 
   @Parameter(names = "--help", help = true)
   private boolean help;

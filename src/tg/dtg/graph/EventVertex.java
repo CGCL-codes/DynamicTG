@@ -6,7 +6,6 @@ import java.util.Map;
 import tg.dtg.events.Event;
 
 public class EventVertex implements Vertex {
-
   public final Event event;
 
   private final Map<Character, ArrayList<AttributeVertex>> edges;
