@@ -4,6 +4,10 @@ import static tg.dtg.util.Global.getParallism;
 import static tg.dtg.util.Global.log;
 
 import com.google.common.collect.Iterators;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -94,6 +98,35 @@ public class Graph {
         + "to edges: " + constructors.stream().mapToInt(Constructor::countTo).reduce(Integer::sum)
         .getAsInt()
     );
+  }
+
+  public void writeGraph(String path) {
+    try {
+      File dir = new File(path);
+      assert (dir.exists() || dir.mkdir()):"cannot find or create output path:"+dir.getCanonicalPath();
+
+      File eventFile = new File(dir, "event");
+      write(eventVertices.stream().map(EventVertex::shortString).iterator(),eventFile);
+
+      write(attributes().stream().map(AttributeVertex::shortString).iterator(),
+          new File(dir, "attrs"));
+
+      write(eventVertices.stream().flatMap(vertex->vertex.edgeStrings().stream()).iterator(),
+          new File(dir, "toEdges"));
+
+      write(attributes().stream().flatMap(vertex -> vertex.edgeStrings().stream()).iterator(),
+          new File(dir, "fromEdges"));
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void write(Iterator<String> lines, File output) throws IOException {
+    BufferedWriter bw = new BufferedWriter(new FileWriter(output));
+    while (lines.hasNext()) {
+      bw.write(lines.next() + "\n");
+    }
+    bw.close();
   }
 
   /**

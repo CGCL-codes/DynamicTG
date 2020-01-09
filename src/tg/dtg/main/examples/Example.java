@@ -30,6 +30,7 @@ public abstract class Example {
   protected final int parallism;
   protected final int numWindow;
   protected final boolean isStatic;
+  protected final String graphDir;
 
   public Example(Config args) {
     this.path = args.path;
@@ -41,6 +42,7 @@ public abstract class Example {
     }
     numWindow = 1;
     this.isStatic = args.isStatic;
+    this.graphDir = args.dirPath;
   }
 
   public static Example getExample(String[] args) {
@@ -75,6 +77,9 @@ public abstract class Example {
         getQuery(), getConstructors());
     graph.construct();
 
+    if (graphDir != null && graphDir.length() > 0) {
+      graph.writeGraph(graphDir);
+    }
     if (parallism > 0) {
       Global.close(100L * (wl + sl * (numWindow - 1)), TimeUnit.MILLISECONDS);
     }
@@ -94,11 +99,15 @@ public abstract class Example {
       }
       int i = 0;
       while (!(windowedEvents.get(i).start <= event.timestamp
-          && event.timestamp < windowedEvents.get(i).start + query.wl)) i++;
-      if(i >= numWindow) break;
-      for(;i<windowedEvents.size();i++) {
-        if(windowedEvents.get(i).start <= event.timestamp
-            && event.timestamp < windowedEvents.get(i).start + query.wl){
+          && event.timestamp < windowedEvents.get(i).start + query.wl)) {
+        i++;
+      }
+      if (i >= numWindow) {
+        break;
+      }
+      for (; i < windowedEvents.size(); i++) {
+        if (windowedEvents.get(i).start <= event.timestamp
+            && event.timestamp < windowedEvents.get(i).start + query.wl) {
           windowedEvents.get(i).events.add(event);
         }
       }

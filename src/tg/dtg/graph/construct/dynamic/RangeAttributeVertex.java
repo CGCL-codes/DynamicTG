@@ -2,6 +2,7 @@ package tg.dtg.graph.construct.dynamic;
 
 import com.google.common.collect.Range;
 import java.util.ArrayList;
+import java.util.List;
 import tg.dtg.common.values.NumericValue;
 import tg.dtg.graph.AttributeVertex;
 import tg.dtg.graph.EventVertex;
@@ -44,5 +45,19 @@ public class RangeAttributeVertex implements AttributeVertex, Comparable<RangeAt
   @Override
   public int compareTo(RangeAttributeVertex o) {
     return range.lowerEndpoint().compareTo(o.range.lowerEndpoint());
+  }
+
+  @Override
+  public String shortString() {
+    return range.toString();
+  }
+
+  @Override
+  public List<String> edgeStrings() {
+    List<String> strings = new ArrayList<>();
+    for(EventVertex vertex:vertices) {
+      strings.add(this.shortString() + "->" + vertex.shortString());
+    }
+    return strings;
   }
 }

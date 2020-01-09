@@ -2,7 +2,9 @@ package tg.dtg.graph;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import tg.dtg.events.Event;
 
 public class EventVertex implements Vertex {
@@ -31,5 +33,24 @@ public class EventVertex implements Vertex {
     return "EventVertex{"
         + "event=" + event
         + '}';
+  }
+
+  /**
+   * for debug, show all edges in string.
+   * @return edges in string
+   */
+  public List<String> edgeStrings() {
+    List<String> strings = new ArrayList<>();
+    for(Entry<Character, ArrayList<AttributeVertex>> entry: edges.entrySet()) {
+      char c = entry.getKey();
+      for(AttributeVertex vertex: entry.getValue()) {
+        strings.add(c + " " + this.shortString() + "->" + vertex.toString());
+      }
+    }
+    return strings;
+  }
+
+  public String shortString() {
+    return event.timestamp + "";
   }
 }

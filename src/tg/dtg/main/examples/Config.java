@@ -19,6 +19,9 @@ public class Config {
   @Parameter(names = {"-static"}, description = "use static constructor")
   boolean isStatic;
 
+  @Parameter(names = {"-w", "-write"}, description = "write graph to directory")
+  String dirPath;
+
   @Parameter(names = "--help", help = true)
   private boolean help;
 }
