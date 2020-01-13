@@ -1,8 +1,12 @@
 package tg.dtg.util;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import tg.dtg.common.values.NumericValue;
 
@@ -42,6 +46,30 @@ public final class Global {
 
   public static ExecutorService getExecutor() {
     return executor;
+  }
+  
+  public static <T> ArrayList<T> callAndSync(ArrayList<Callable<T>> tasks)
+      throws ExecutionException, InterruptedException {
+    ArrayList<Future<T>> futures = new ArrayList<>(tasks.size());
+    for (Callable<T> task:tasks) {
+      futures.add(executor.submit(task));
+    }
+    ArrayList<T> results = new ArrayList<>(tasks.size());
+    for(Future<T> future: futures) {
+      results.add(future.get());
+    }
+    return results;
+  }
+
+  public static void runAndSync(ArrayList<Runnable> tasks)
+      throws ExecutionException, InterruptedException {
+    ArrayList<Future<?>> futures = new ArrayList<>(tasks.size());
+    for (Runnable task:tasks) {
+      futures.add(executor.submit(task));
+    }
+    for(Future<?> future: futures) {
+      future.get();
+    }
   }
 
   public static void close(long timeout, TimeUnit timeUnit) {

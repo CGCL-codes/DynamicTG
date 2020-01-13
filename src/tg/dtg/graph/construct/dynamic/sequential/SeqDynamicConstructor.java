@@ -2,7 +2,6 @@ package tg.dtg.graph.construct.dynamic.sequential;
 
 import static tg.dtg.util.Global.log;
 
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Range;
 import java.util.ArrayList;
@@ -23,7 +22,7 @@ public class SeqDynamicConstructor extends SequentialDynamicConstructor {
 
   protected final TreeMap<NumericValue, RangeAttributeVertex> vertices;
   protected final KeySortedMultimap<NumericValue,
-        TupleEdge<NumericValue, EventVertex, Object>> fromEdges;
+      TupleEdge<NumericValue, EventVertex, Object>> fromEdges;
   protected final KeySortedMultimap<RangeAttributeVertex,
       TupleEdge<EventVertex, RangeAttributeVertex, Object>> toEdges;
 
@@ -132,8 +131,8 @@ public class SeqDynamicConstructor extends SequentialDynamicConstructor {
   }
 
   @Override
-  public Iterator<AttributeVertex> attributes() {
-    return Iterators.transform(vertices.values().iterator(), rv -> rv);
+  public ArrayList<AttributeVertex> attributes() {
+    return new ArrayList<>(this.vertices.values());
   }
 
   @Override

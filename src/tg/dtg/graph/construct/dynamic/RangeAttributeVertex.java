@@ -4,6 +4,7 @@ import com.google.common.collect.Range;
 import java.util.ArrayList;
 import java.util.List;
 import tg.dtg.common.values.NumericValue;
+import tg.dtg.common.values.Value;
 import tg.dtg.graph.AttributeVertex;
 import tg.dtg.graph.EventVertex;
 
@@ -19,11 +20,6 @@ public class RangeAttributeVertex implements AttributeVertex, Comparable<RangeAt
   }
 
   public void linkToEvent(EventVertex eventVertex) {
-    linkToEvent(null, eventVertex);
-  }
-
-  @Override
-  public void linkToEvent(NumericValue value, EventVertex eventVertex) {
     vertices.add(eventVertex);
   }
 
@@ -33,6 +29,11 @@ public class RangeAttributeVertex implements AttributeVertex, Comparable<RangeAt
 
   public void setRange(Range<NumericValue> range) {
     this.range = range;
+  }
+
+  @Override
+  public List<EventVertex> getEdges() {
+    return vertices;
   }
 
   @Override
@@ -55,7 +56,7 @@ public class RangeAttributeVertex implements AttributeVertex, Comparable<RangeAt
   @Override
   public List<String> edgeStrings() {
     List<String> strings = new ArrayList<>();
-    for(EventVertex vertex:vertices) {
+    for (EventVertex vertex : vertices) {
       strings.add(this.shortString() + "->" + vertex.shortString());
     }
     return strings;

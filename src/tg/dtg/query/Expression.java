@@ -1,7 +1,15 @@
 package tg.dtg.query;
 
-import java.util.ArrayList;
+import java.util.Map;
 
-public abstract class Expression {
-  public abstract ArrayList<Predicate> predicates();
+public interface Expression {
+  Map<Character,Predicate> predicates();
+
+  default boolean isLogical() {
+    return false;
+  }
+
+  default boolean isPredicate() {
+    return false;
+  }
 }

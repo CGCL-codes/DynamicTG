@@ -22,6 +22,12 @@ public class Config {
   @Parameter(names = {"-w", "-write"}, description = "write graph to directory")
   String dirPath;
 
+  @Parameter(names = {"-sel"}, description = "select an anchor for each selectivity nodes")
+  int selectivity = 2;
+
+  @Parameter(names = {"-out"}, description = "if write results")
+  boolean isWrite;
+
   @Parameter(names = "--help", help = true)
   private boolean help;
 }

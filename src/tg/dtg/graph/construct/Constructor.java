@@ -24,7 +24,7 @@ public abstract class Constructor {
 
   public abstract void manage();
 
-  public abstract Iterator<AttributeVertex> attributes();
+  public abstract ArrayList<AttributeVertex> attributes();
 
   public int countAttr() {
     return 0;
@@ -36,6 +36,10 @@ public abstract class Constructor {
 
   public int countTo() {
     return countT;
+  }
+
+  public Predicate getPredicate() {
+    return predicate;
   }
 
   public void close() {

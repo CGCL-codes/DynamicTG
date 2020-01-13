@@ -2,16 +2,13 @@ package tg.dtg.graph.construct.dynamic.sequential;
 
 import static tg.dtg.util.Global.log;
 
-import com.google.common.collect.Iterators;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.TreeSet;
 import tg.dtg.common.values.NumericValue;
 import tg.dtg.events.Event;
 import tg.dtg.graph.AttributeVertex;
 import tg.dtg.graph.EventVertex;
 import tg.dtg.graph.construct.dynamic.KeySortedMultimap;
-import tg.dtg.graph.construct.dynamic.RangeAttributeVertex;
 import tg.dtg.graph.construct.dynamic.StaticManager;
 import tg.dtg.graph.construct.dynamic.parallel.TupleEdge;
 import tg.dtg.query.Predicate;
@@ -21,7 +18,7 @@ public class SeqStaticDynamicConstructor extends SequentialDynamicConstructor {
   private TreeSet<NumericValue> gaps;
   private KeySortedMultimap<NumericValue, TupleEdge<NumericValue, EventVertex, Object>> fromEdges;
   private KeySortedMultimap<NumericValue, TupleEdge<EventVertex, NumericValue, Object>> toEdges;
-  private ArrayList<RangeAttributeVertex> vertices;
+  private ArrayList<AttributeVertex> vertices;
 
 
   public SeqStaticDynamicConstructor(Predicate predicate,
@@ -66,7 +63,7 @@ public class SeqStaticDynamicConstructor extends SequentialDynamicConstructor {
   }
 
   @Override
-  public Iterator<AttributeVertex> attributes() {
-    return Iterators.transform(vertices.iterator(), rv -> rv);
+  public ArrayList<AttributeVertex> attributes() {
+    return vertices;
   }
 }

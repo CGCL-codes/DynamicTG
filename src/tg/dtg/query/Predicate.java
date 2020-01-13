@@ -1,11 +1,13 @@
 package tg.dtg.query;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 import tg.dtg.common.values.Value;
 
-public class Predicate extends Expression {
+public class Predicate implements Expression {
   private static char ctag = 'a';
   public final Operator op;
   public final int leftOperand;
@@ -28,9 +30,14 @@ public class Predicate extends Expression {
   }
 
   @Override
-  public ArrayList<Predicate> predicates() {
-    ArrayList<Predicate> predicates = new ArrayList<>(1);
-    predicates.add(this);
+  public boolean isPredicate() {
+    return true;
+  }
+
+  @Override
+  public Map<Character,Predicate> predicates() {
+    Map<Character, Predicate> predicates = new HashMap<>(1);
+    predicates.put(tag, this);
     return predicates;
   }
 }

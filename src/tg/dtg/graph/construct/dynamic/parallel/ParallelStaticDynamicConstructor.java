@@ -3,7 +3,6 @@ package tg.dtg.graph.construct.dynamic.parallel;
 import static tg.dtg.util.Global.getExecutor;
 import static tg.dtg.util.Global.log;
 
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Range;
 import java.util.ArrayList;
@@ -26,7 +25,9 @@ public class ParallelStaticDynamicConstructor extends ParallelDynamicConstructor
   private final EventProcessor[] processors;
 
   private Future<?>[] futures;
-  private ArrayList<RangeAttributeVertex> vertices;
+
+  private ArrayList<AttributeVertex> vertices;
+
 
   public ParallelStaticDynamicConstructor(int parallism, Predicate predicate,
       NumericValue start, NumericValue end,
@@ -112,7 +113,7 @@ public class ParallelStaticDynamicConstructor extends ParallelDynamicConstructor
       toIts.add(processor.getToEdges());
     }
 
-    StaticManager manager = new StaticManager(start, end, step, cmp,predicate);
+    StaticManager manager = new StaticManager(start, end, step, cmp, predicate);
 
     log("mange ranges");
     MergedIterator<NumericValue> it = new MergedIterator<>(its, cmp);
@@ -123,13 +124,13 @@ public class ParallelStaticDynamicConstructor extends ParallelDynamicConstructor
     Iterator<TupleEdge<NumericValue, EventVertex, Object>> fromEdges = new MergedIterator<>(
         fromtIts,
         Ordering.from(cmp).onResultOf(TupleEdge::getSource));
-    countF = manager.reduceFromEdges(fromEdges,vertices);
+    countF = manager.reduceFromEdges(fromEdges, vertices);
 
     log("manage to edges");
     Iterator<TupleEdge<EventVertex, NumericValue, Object>> toEdges = new MergedIterator<>(toIts,
         //Comparator.comparing(TupleEdge::getTarget));
         Ordering.from(cmp).onResultOf(TupleEdge::getTarget));
-    countT = manager.reduceToEdges(toEdges,vertices);
+    countT = manager.reduceToEdges(toEdges, vertices);
   }
 
   private ArrayList<RangeAttributeVertex> mergeGaps1(ArrayList<Iterator<NumericValue>> its) {
@@ -177,7 +178,7 @@ public class ParallelStaticDynamicConstructor extends ParallelDynamicConstructor
   }
 
   @Override
-  public Iterator<AttributeVertex> attributes() {
-    return Iterators.transform(vertices.iterator(), rv -> rv);
+  public ArrayList<AttributeVertex> attributes() {
+    return vertices;
   }
 }

@@ -31,6 +31,9 @@ public abstract class Example {
   protected final int numWindow;
   protected final boolean isStatic;
   protected final String graphDir;
+  protected final int selectivity;
+  protected final boolean isWrite;
+
 
   public Example(Config args) {
     this.path = args.path;
@@ -43,6 +46,8 @@ public abstract class Example {
     numWindow = 1;
     this.isStatic = args.isStatic;
     this.graphDir = args.dirPath;
+    selectivity = args.selectivity;
+    isWrite = args.isWrite;
   }
 
   public static Example getExample(String[] args) {
@@ -68,6 +73,8 @@ public abstract class Example {
         + "input events: " + path + "\n"
         + "window: " + wl + ", " + sl + "\n"
         + "parallism: " + parallism + "\n"
+        + "selectivity: " + selectivity + "\n"
+        + "isWrite: " + isWrite + "\n"
         + parameters() + "\n"
         + "************************************";
     System.out.println(parameters);
@@ -80,6 +87,8 @@ public abstract class Example {
     if (graphDir != null && graphDir.length() > 0) {
       graph.writeGraph(graphDir);
     }
+    graph.detect(selectivity, isWrite);
+
     if (parallism > 0) {
       Global.close(100L * (wl + sl * (numWindow - 1)), TimeUnit.MILLISECONDS);
     }

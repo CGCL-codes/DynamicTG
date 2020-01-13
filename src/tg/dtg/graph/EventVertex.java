@@ -17,7 +17,7 @@ public class EventVertex implements Vertex {
     edges = new HashMap<>();
   }
 
-  public void linkToAttr(char c, AttributeVertex vertex) {
+  public <T extends AttributeVertex> void linkToAttr(char c, T vertex) {
     ArrayList<AttributeVertex> egs;
     if (!edges.containsKey(c)) {
       egs = new ArrayList<>();
@@ -28,11 +28,19 @@ public class EventVertex implements Vertex {
     egs.add(vertex);
   }
 
+  public long timestamp() {
+    return event.timestamp;
+  }
+
   @Override
   public String toString() {
     return "EventVertex{"
         + "event=" + event
         + '}';
+  }
+
+  public Map<Character, ArrayList<AttributeVertex>> getEdges() {
+    return edges;
   }
 
   /**

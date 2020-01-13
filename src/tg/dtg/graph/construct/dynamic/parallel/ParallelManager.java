@@ -20,6 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import tg.dtg.common.values.NumericValue;
 import tg.dtg.common.values.Value;
+import tg.dtg.graph.AttributeVertex;
 import tg.dtg.graph.EventVertex;
 import tg.dtg.graph.construct.dynamic.RangeAttributeVertex;
 import tg.dtg.query.Operator;
@@ -35,7 +36,7 @@ public class ParallelManager {
     this.executor = executor;
   }
 
-  public ArrayList<RangeAttributeVertex> mergeGaps(ArrayList<Iterator<NumericValue>> its,
+  public ArrayList<AttributeVertex> mergeGaps(ArrayList<Iterator<NumericValue>> its,
       NumericValue start, NumericValue end, NumericValue step,
       Operator operator) throws ExecutionException, InterruptedException {
     Preconditions.checkArgument(its.size() > 0);
@@ -69,7 +70,7 @@ public class ParallelManager {
     return list;
   }
 
-  private ArrayList<RangeAttributeVertex> merge2range(Iterator<NumericValue> left,
+  private ArrayList<AttributeVertex> merge2range(Iterator<NumericValue> left,
       Iterator<NumericValue> right,
       NumericValue start,
       NumericValue end,
@@ -77,7 +78,7 @@ public class ParallelManager {
       Operator operator) {
     Comparator<NumericValue> cmp = Global.numericValueComparator();
     Iterator<NumericValue> it = new DistinctMergeIterator<>(left, right, cmp);
-    ArrayList<RangeAttributeVertex> ranges = new ArrayList<>();
+    ArrayList<AttributeVertex> ranges = new ArrayList<>();
     Range<NumericValue> range;
     NumericValue lower = start;
     NumericValue gap;
@@ -107,7 +108,7 @@ public class ParallelManager {
   }
 
   public int reduceFromEdges(ArrayList<Iterator<TupleEdge<NumericValue, EventVertex, Object>>> its,
-      ArrayList<RangeAttributeVertex> vertices)
+      ArrayList<AttributeVertex> vertices)
       throws ExecutionException, InterruptedException {
     // partition by the index of vertex
     ArrayList<Future<ArrayList<List<TupleEdge<NumericValue, EventVertex, Object>>>>> futures
@@ -153,7 +154,7 @@ public class ParallelManager {
   }
 
   public int reduceToEdges(ArrayList<Iterator<TupleEdge<EventVertex, NumericValue, Object>>> its,
-      Predicate predicate, ArrayList<RangeAttributeVertex> vertices)
+      Predicate predicate, ArrayList<AttributeVertex> vertices)
       throws ExecutionException, InterruptedException {
     ArrayList<Future<Integer>> futures = new ArrayList<>();
     for (Iterator<TupleEdge<EventVertex, NumericValue, Object>> it : its) {
@@ -209,12 +210,12 @@ public class ParallelManager {
   private static class ReduceToVertices implements Callable<Integer> {
 
     private final ArrayList<ArrayList<List<TupleEdge<NumericValue, EventVertex, Object>>>> items;
-    private final ArrayList<RangeAttributeVertex> vertices;
+    private final ArrayList<AttributeVertex> vertices;
     private final Set<Integer> keys;
 
     private ReduceToVertices(
         ArrayList<ArrayList<List<TupleEdge<NumericValue, EventVertex, Object>>>> items,
-        ArrayList<RangeAttributeVertex> vertices, Set<Integer> keys) {
+        ArrayList<AttributeVertex> vertices, Set<Integer> keys) {
       this.items = items;
       this.vertices = vertices;
       this.keys = keys;
@@ -225,7 +226,7 @@ public class ParallelManager {
       int count = 0;
       for (Integer key : keys) {
         ArrayList<List<TupleEdge<NumericValue, EventVertex, Object>>> edges = items.get(key);
-        RangeAttributeVertex vertex = vertices.get(key);
+        RangeAttributeVertex vertex = (RangeAttributeVertex)(vertices.get(key));
         for (List<TupleEdge<NumericValue, EventVertex, Object>> edgeList : edges) {
           for (TupleEdge<NumericValue, EventVertex, Object> edge : edgeList) {
             vertex.linkToEvent(edge.getTarget());
@@ -240,11 +241,11 @@ public class ParallelManager {
   private static class PartitionByInt implements
       Callable<ArrayList<List<TupleEdge<NumericValue, EventVertex, Object>>>> {
 
-    private final ArrayList<RangeAttributeVertex> vertices;
+    private final ArrayList<AttributeVertex> vertices;
     private final Iterator<TupleEdge<NumericValue, EventVertex, Object>> edges;
 
     private PartitionByInt(
-        ArrayList<RangeAttributeVertex> vertices,
+        ArrayList<AttributeVertex> vertices,
         Iterator<TupleEdge<NumericValue, EventVertex, Object>> edges) {
       this.vertices = vertices;
       this.edges = edges;
@@ -260,7 +261,7 @@ public class ParallelManager {
       }
       while (edges.hasNext()) {
         TupleEdge<NumericValue, EventVertex, Object> edge = edges.next();
-        while (!vertices.get(i).getRange().contains(edge.getSource())) {
+        while (!((RangeAttributeVertex)vertices.get(i)).getRange().contains(edge.getSource())) {
           i++;
         }
         multimap.get(i).add(edge);
@@ -272,12 +273,12 @@ public class ParallelManager {
   private static class CopyToEdge implements Callable<Integer> {
 
     private final Iterator<TupleEdge<EventVertex, NumericValue, Object>> iterator;
-    private final ArrayList<RangeAttributeVertex> vertices;
+    private final ArrayList<AttributeVertex> vertices;
     private final Predicate predicate;
 
     private CopyToEdge(
         Iterator<TupleEdge<EventVertex, NumericValue, Object>> iterator,
-        ArrayList<RangeAttributeVertex> vertices, Predicate predicate) {
+        ArrayList<AttributeVertex> vertices, Predicate predicate) {
       this.iterator = iterator;
       this.vertices = vertices;
       this.predicate = predicate;
@@ -289,7 +290,7 @@ public class ParallelManager {
       int count = 0;
       while (iterator.hasNext()) {
         TupleEdge<EventVertex, NumericValue, Object> edge = iterator.next();
-        while (!vertices.get(i).getRange().contains(edge.getTarget())) {
+        while (!((RangeAttributeVertex)vertices.get(i)).getRange().contains(edge.getTarget())) {
           i++;
         }
         switch (predicate.op) {

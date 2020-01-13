@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import tg.dtg.common.values.NumericValue;
 import tg.dtg.common.values.Value;
+import tg.dtg.graph.AttributeVertex;
 import tg.dtg.graph.EventVertex;
 import tg.dtg.graph.construct.dynamic.parallel.TupleEdge;
 import tg.dtg.query.Predicate;
@@ -26,10 +27,10 @@ public class StaticManager {
     this.predicate = predicate;
   }
 
-  public ArrayList<RangeAttributeVertex> mergeGaps(Iterator<NumericValue> it) {
+  public ArrayList<AttributeVertex> mergeGaps(Iterator<NumericValue> it) {
     NumericValue lower = this.start;
     NumericValue prevGap = null;
-    ArrayList<RangeAttributeVertex> ranges = new ArrayList<>();
+    ArrayList<AttributeVertex> ranges = new ArrayList<>();
     Range<NumericValue> range;
     while (it.hasNext()) {
       NumericValue gap = it.next();
@@ -65,22 +66,22 @@ public class StaticManager {
   }
 
   public int reduceFromEdges(Iterator<TupleEdge<NumericValue, EventVertex, Object>> fromEdges,
-      ArrayList<RangeAttributeVertex> vertices) {
+      ArrayList<AttributeVertex> vertices) {
     int i = 0;
     int countF = 0;
     while (fromEdges.hasNext()) {
       TupleEdge<NumericValue, EventVertex, Object> edge = fromEdges.next();
-      while (!vertices.get(i).getRange().contains(edge.getSource())) {
+      while (!((RangeAttributeVertex)vertices.get(i)).getRange().contains(edge.getSource())) {
         i++;
       }
-      vertices.get(i).linkToEvent(edge.getTarget());
+      ((RangeAttributeVertex)vertices.get(i)).linkToEvent(edge.getTarget());
       countF += 1;
     }
     return countF;
   }
 
   public int reduceToEdges(Iterator<TupleEdge<EventVertex, NumericValue, Object>> toEdges,
-      ArrayList<RangeAttributeVertex> vertices) {
+      ArrayList<AttributeVertex> vertices) {
     int i = 0;
     int count = 0;
     int countT = 0;
@@ -88,7 +89,7 @@ public class StaticManager {
     while (toEdges.hasNext()) {
       TupleEdge<EventVertex, NumericValue, Object> edge = toEdges.next();
       count++;
-      while (!vertices.get(i).getRange().contains(edge.getTarget())) {
+      while (!((RangeAttributeVertex)vertices.get(i)).getRange().contains(edge.getTarget())) {
         i++;
       }
       switch (predicate.op) {

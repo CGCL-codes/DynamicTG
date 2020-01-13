@@ -1,8 +1,9 @@
 package tg.dtg.query;
 
 import java.util.ArrayList;
+import java.util.Map;
 
-public class LogicalExpression extends Expression {
+public class LogicalExpression implements Expression {
   private Expression left;
   private Expression right;
 
@@ -30,9 +31,14 @@ public class LogicalExpression extends Expression {
   }
 
   @Override
-  public ArrayList<Predicate> predicates() {
-    ArrayList<Predicate> predicates = left.predicates();
-    predicates.addAll(right.predicates());
+  public boolean isLogical() {
+    return true;
+  }
+
+  @Override
+  public Map<Character,Predicate> predicates() {
+    Map<Character, Predicate> predicates = left.predicates();
+    predicates.putAll(right.predicates());
     return predicates;
   }
 
