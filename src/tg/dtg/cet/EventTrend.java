@@ -20,11 +20,17 @@ public class EventTrend {
     this.events = events;
   }
 
-  public void add(Event event) {
+  public void prepend(EventTrend trend) {
+    ArrayList<Event> events = new ArrayList<>(trend.events);
+    events.addAll(this.events);
+    this.events = events;
+  }
+
+  public void append(Event event) {
     events.add(event);
   }
 
-  public void add(EventTrend trend) {
+  public void append(EventTrend trend) {
     events.addAll(trend.events);
   }
 

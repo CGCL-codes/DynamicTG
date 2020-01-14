@@ -105,10 +105,10 @@ public class Graph {
     );
   }
 
-  public void detect(int selectivity, boolean isWrite) {
+  public void detect(int selectivity, boolean isWrite, int numIteration) {
     Detector detector = new BasicAnchorBasedDetector(eventVertices,
         constructors,query,
-        selectivity,
+        selectivity, numIteration,
         isWrite);
     detector.detect();
   }

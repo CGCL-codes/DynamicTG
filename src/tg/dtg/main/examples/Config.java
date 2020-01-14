@@ -28,6 +28,10 @@ public class Config {
   @Parameter(names = {"-out"}, description = "if write results")
   boolean isWrite;
 
+  @Parameter(names = {"-iter"}, description = "num iteration, default 1, "
+      + "which means do not further iterate")
+  int numInteration = 1;
+
   @Parameter(names = "--help", help = true)
   private boolean help;
 }

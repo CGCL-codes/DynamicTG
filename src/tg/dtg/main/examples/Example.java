@@ -33,6 +33,7 @@ public abstract class Example {
   protected final String graphDir;
   protected final int selectivity;
   protected final boolean isWrite;
+  protected final int numInteration;
 
 
   public Example(Config args) {
@@ -48,6 +49,7 @@ public abstract class Example {
     this.graphDir = args.dirPath;
     selectivity = args.selectivity;
     isWrite = args.isWrite;
+    numInteration = args.numInteration;
   }
 
   public static Example getExample(String[] args) {
@@ -87,7 +89,7 @@ public abstract class Example {
     if (graphDir != null && graphDir.length() > 0) {
       graph.writeGraph(graphDir);
     }
-    graph.detect(selectivity, isWrite);
+    graph.detect(selectivity, isWrite, numInteration);
 
     if (parallism > 0) {
       Global.close(100L * (wl + sl * (numWindow - 1)), TimeUnit.MILLISECONDS);
