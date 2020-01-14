@@ -4,4 +4,4 @@ data/
 out/
 active
 *.active
-graph/
+/graph
