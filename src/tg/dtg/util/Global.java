@@ -68,16 +68,16 @@ public final class Global {
     AtomicInteger counter = new AtomicInteger();
     final int size = tasks.size();
     System.out.println("total " + size + " tasks");
-    ArrayList<Future<?>> futures = new ArrayList<>(tasks.size());
+    ArrayList<CompletableFuture<Void>> futures = new ArrayList<>(tasks.size());
     for (Runnable task:tasks) {
-      CompletableFuture.runAsync(task,executor)
+      CompletableFuture<Void> future = CompletableFuture.runAsync(task,executor)
           .thenAccept((x)->{
             int count = counter.incrementAndGet();
             if (count % 10 == 0) {
               System.out.println("complete " + count + " tasks");
             }
           });
-      futures.add(executor.submit(task));
+      futures.add(future);
     }
     for(Future<?> future: futures) {
       future.get();

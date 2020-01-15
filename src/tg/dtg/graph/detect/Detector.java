@@ -117,7 +117,7 @@ public abstract class Detector {
       p2ends.put(c,ends);
     }
     starts = DetectUtil.syncByQuery(p2starts, query);
-    ends = DetectUtil.syncByQuery(p2starts, query);
+    ends = DetectUtil.syncByQuery(p2ends, query);
   }
 
 }
