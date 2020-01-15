@@ -3,11 +3,13 @@ package tg.dtg.util;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import tg.dtg.common.values.NumericValue;
 
 public final class Global {
@@ -63,8 +65,18 @@ public final class Global {
 
   public static void runAndSync(ArrayList<Runnable> tasks)
       throws ExecutionException, InterruptedException {
+    AtomicInteger counter = new AtomicInteger();
+    final int size = tasks.size();
+    System.out.println("total " + size + " tasks");
     ArrayList<Future<?>> futures = new ArrayList<>(tasks.size());
     for (Runnable task:tasks) {
+      CompletableFuture.runAsync(task,executor)
+          .thenAccept((x)->{
+            int count = counter.incrementAndGet();
+            if (count % 10 == 0) {
+              System.out.println("complete " + count + " tasks");
+            }
+          });
       futures.add(executor.submit(task));
     }
     for(Future<?> future: futures) {
