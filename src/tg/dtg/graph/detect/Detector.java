@@ -68,4 +68,45 @@ public abstract class Detector {
     }
   }
 
+  /**
+   * prefilter do not need to traverse one step, to judge an end vertex, we only need to
+   * check if it has a follower. Similarly, to judge an start vertex, we only need to
+   * judge if it has a preview vertex. Vertices match by the edges and time. So if we set
+   * the time metrics in attr vertices. We don't need to match further.
+   * @param c tag for predicate.
+   */
+  protected void fastPrefilterInOnePredicate(char c) {
+    starts = new HashSet<>(eventVertices);
+    ends = new HashSet<>(eventVertices);
+    HashMap<AttributeVertex, long[]> metas = new HashMap<>();
+
+    // forward one step
+    for(EventVertex vertex: eventVertices) {
+        ArrayList<AttributeVertex> edges = vertex.getEdges().get(c);
+        for(AttributeVertex attr: edges) {
+          long[] meta = metas.get(attr);
+          if(meta == null) {
+            // have cal min and max, compare
+            long max = 0;
+            for(EventVertex ev: attr.getEdges()) {
+              if(ev.timestamp() > max) max = ev.timestamp();
+            }
+            meta = new long[] {max, max+1};
+            metas.put(attr, meta);
+          }
+
+          if(vertex.timestamp() < meta[0]) ends.remove(vertex);
+          if(vertex.timestamp() < meta[1]) meta[1] = vertex.timestamp();
+        }
+    }
+    for(Entry<AttributeVertex, long[]> entry: metas.entrySet()) {
+      long[] meta = entry.getValue();
+      if(meta[1] < meta[0]) {
+        for(EventVertex ev: entry.getKey().getEdges()) {
+          if(ev.timestamp() > meta[1]) starts.remove(ev);
+        }
+      }
+    }
+  }
+
 }
