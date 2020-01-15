@@ -37,7 +37,7 @@ public abstract class AnchorBasedDetector extends Detector {
     log("begin detect");
     Map<Character,Collection<AttributeVertex>> anchors = selectAnchors();
     log("finish select anchors");
-    prefilter();
+    fastPrefilter();
     log("finish prefilter");
     detectByAnchors(anchors);
     log("finish detect");

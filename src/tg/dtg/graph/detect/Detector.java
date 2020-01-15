@@ -73,40 +73,51 @@ public abstract class Detector {
    * check if it has a follower. Similarly, to judge an start vertex, we only need to
    * judge if it has a preview vertex. Vertices match by the edges and time. So if we set
    * the time metrics in attr vertices. We don't need to match further.
-   * @param c tag for predicate.
    */
-  protected void fastPrefilterInOnePredicate(char c) {
-    starts = new HashSet<>(eventVertices);
-    ends = new HashSet<>(eventVertices);
-    HashMap<AttributeVertex, long[]> metas = new HashMap<>();
+  protected void fastPrefilter() {
+    HashMap<Character, HashSet<EventVertex>> p2starts = new HashMap<>();
+    HashMap<Character, HashSet<EventVertex>> p2ends = new HashMap<>();
+    for(char c: p2attrVertices.keySet()) {
+      HashSet<EventVertex> starts = new HashSet<>(eventVertices);
+      HashSet<EventVertex> ends = new HashSet<>(eventVertices);
+      HashMap<AttributeVertex, long[]> metas = new HashMap<>();
 
-    // forward one step
-    for(EventVertex vertex: eventVertices) {
+      // forward one step
+      for (EventVertex vertex : eventVertices) {
         ArrayList<AttributeVertex> edges = vertex.getEdges().get(c);
-        for(AttributeVertex attr: edges) {
+        for (AttributeVertex attr : edges) {
           long[] meta = metas.get(attr);
-          if(meta == null) {
+          if (meta == null) {
             // have cal min and max, compare
             long max = 0;
-            for(EventVertex ev: attr.getEdges()) {
-              if(ev.timestamp() > max) max = ev.timestamp();
+            for (EventVertex ev : attr.getEdges()) {
+              if (ev.timestamp() > max)
+                max = ev.timestamp();
             }
-            meta = new long[] {max, max+1};
+            meta = new long[]{max, max + 1};
             metas.put(attr, meta);
           }
 
-          if(vertex.timestamp() < meta[0]) ends.remove(vertex);
-          if(vertex.timestamp() < meta[1]) meta[1] = vertex.timestamp();
-        }
-    }
-    for(Entry<AttributeVertex, long[]> entry: metas.entrySet()) {
-      long[] meta = entry.getValue();
-      if(meta[1] < meta[0]) {
-        for(EventVertex ev: entry.getKey().getEdges()) {
-          if(ev.timestamp() > meta[1]) starts.remove(ev);
+          if (vertex.timestamp() < meta[0])
+            ends.remove(vertex);
+          if (vertex.timestamp() < meta[1])
+            meta[1] = vertex.timestamp();
         }
       }
+      for (Entry<AttributeVertex, long[]> entry : metas.entrySet()) {
+        long[] meta = entry.getValue();
+        if (meta[1] < meta[0]) {
+          for (EventVertex ev : entry.getKey().getEdges()) {
+            if (ev.timestamp() > meta[1])
+              starts.remove(ev);
+          }
+        }
+      }
+      p2starts.put(c,starts);
+      p2ends.put(c,ends);
     }
+    starts = DetectUtil.syncByQuery(p2starts, query);
+    ends = DetectUtil.syncByQuery(p2starts, query);
   }
 
 }
