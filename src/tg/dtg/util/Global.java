@@ -10,6 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import tg.dtg.common.values.NumericValue;
 
 public final class Global {
@@ -50,13 +51,24 @@ public final class Global {
     return executor;
   }
   
-  public static <T> ArrayList<T> callAndSync(ArrayList<Callable<T>> tasks)
+  public static <T> ArrayList<T> callAndSync(ArrayList<Supplier<T>> tasks)
       throws ExecutionException, InterruptedException {
-    ArrayList<Future<T>> futures = new ArrayList<>(tasks.size());
-    for (Callable<T> task:tasks) {
-      futures.add(executor.submit(task));
+    AtomicInteger counter = new AtomicInteger();
+    final int size = tasks.size();
+    System.out.println("total " + size + " tasks");
+    ArrayList<CompletableFuture<T>> futures = new ArrayList<>(tasks.size());
+    for (Supplier<T> task:tasks) {
+      CompletableFuture<T> future = CompletableFuture.supplyAsync(task,executor)
+          .thenApply((x)->{
+            int count = counter.incrementAndGet();
+            if (count % 10 == 0) {
+              System.out.println("complete " + count + " tasks");
+            }
+            return x;
+          });
+      futures.add(future);
     }
-    ArrayList<T> results = new ArrayList<>(tasks.size());
+    ArrayList<T> results = new ArrayList<>();
     for(Future<T> future: futures) {
       results.add(future.get());
     }
