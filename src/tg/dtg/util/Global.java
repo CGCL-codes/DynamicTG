@@ -2,6 +2,7 @@ package tg.dtg.util;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -10,6 +11,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import tg.dtg.common.values.NumericValue;
 
@@ -25,6 +29,9 @@ public final class Global {
   private static int parallism;
   private static ExecutorService executor;
 
+  // debug
+  public static boolean pdfs = false;
+
   public static void initParallel(int parallism) {
     if (isSetParallel) {
       throw new DuplicateSetGlobalError("parallel");
@@ -39,7 +46,7 @@ public final class Global {
       throw new DuplicateSetGlobalError("value");
     }
     Global.precison = precison;
-    DEFAULT_NUMERIC_COMPARATOR = numericValueComparator(precison / 1000);
+    DEFAULT_NUMERIC_COMPARATOR = numericValueComparator(precison / 10000);
     isSetValueConfig = true;
   }
 
@@ -55,19 +62,21 @@ public final class Global {
       throws ExecutionException, InterruptedException {
     AtomicInteger counter = new AtomicInteger();
     final int size = tasks.size();
-    System.out.println("total " + size + " tasks");
+    final int step = Math.max(1,(int) Math.floor(size / 100.0));
+    System.out.print("total " + size + " tasks" + "  ");
     ArrayList<CompletableFuture<T>> futures = new ArrayList<>(tasks.size());
     for (Supplier<T> task:tasks) {
       CompletableFuture<T> future = CompletableFuture.supplyAsync(task,executor)
           .thenApply((x)->{
             int count = counter.incrementAndGet();
-            if (count % 10 == 0) {
-              System.out.println("complete " + count + " tasks");
+            if (count % step == 0) {
+              System.out.print(".");
             }
             return x;
           });
       futures.add(future);
     }
+    System.out.println();
     ArrayList<T> results = new ArrayList<>();
     for(Future<T> future: futures) {
       results.add(future.get());
@@ -75,18 +84,20 @@ public final class Global {
     return results;
   }
 
-  public static void runAndSync(ArrayList<Runnable> tasks)
+  public static void runAndSync(List<Runnable> tasks)
       throws ExecutionException, InterruptedException {
     AtomicInteger counter = new AtomicInteger();
     final int size = tasks.size();
-    System.out.println("total " + size + " tasks");
+    final int step = Math.max(1,(int) Math.floor(size / 100.0));
+    System.out.println("total " + size + " tasks" + "  ");
     ArrayList<CompletableFuture<Void>> futures = new ArrayList<>(tasks.size());
     for (Runnable task:tasks) {
-      CompletableFuture<Void> future = CompletableFuture.runAsync(task,executor)
+      CompletableFuture<Void> future = CompletableFuture
+          .runAsync(task,executor)
           .thenAccept((x)->{
             int count = counter.incrementAndGet();
-            if (count % 10 == 0) {
-              System.out.println("complete " + count + " tasks");
+            if (count % step == 0) {
+              System.out.print(".");
             }
           });
       futures.add(future);
@@ -94,6 +105,11 @@ public final class Global {
     for(Future<?> future: futures) {
       future.get();
     }
+    System.out.println();
+  }
+
+  private static synchronized void progress(int percent) {
+    System.out.print(String.format("%02d%%",percent));
   }
 
   public static void close(long timeout, TimeUnit timeUnit) {
@@ -138,7 +154,7 @@ public final class Global {
     }
   }
 
-  private static class NumericValueComparator implements Comparator<NumericValue> {
+  public static class NumericValueComparator implements Comparator<NumericValue> {
 
     private final double step;
 

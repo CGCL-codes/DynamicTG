@@ -1,12 +1,18 @@
 package tg.dtg.graph.detect;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Consumer;
 import tg.dtg.cet.EventTrend;
+import tg.dtg.cet.SimpleEventTrend;
 import tg.dtg.graph.AttributeVertex;
 import tg.dtg.graph.EventVertex;
 import tg.dtg.graph.construct.Constructor;
@@ -19,25 +25,19 @@ public abstract class Detector {
 
   protected HashSet<EventVertex> starts;
   protected HashSet<EventVertex> ends;
-  protected Consumer<EventTrend> outputFunc;
-  protected ArrayList<EventTrend> outputs = new ArrayList<>();
+  protected Consumer<SimpleEventTrend> outputFunc;
 
-  protected boolean isWrite;
+  protected String writePath;
 
   public Detector(ArrayList<EventVertex> eventVertices,
-      ArrayList<Constructor> constructors, Query query, boolean isWrite) {
+      ArrayList<Constructor> constructors, Query query, String writePath) {
     this.eventVertices = eventVertices;
     this.query = query;
     p2attrVertices = new HashMap<>();
     for(Constructor constructor:constructors) {
       p2attrVertices.put(constructor.getPredicate().tag, constructor.attributes());
     }
-    this.isWrite = isWrite;
-    if(isWrite) {
-      outputFunc = outputs::add;
-    }else {
-      outputFunc = et->{};
-    }
+    this.writePath = writePath;
   }
 
   public abstract void detect();
@@ -88,7 +88,7 @@ public abstract class Detector {
         for (AttributeVertex attr : edges) {
           long[] meta = metas.get(attr);
           if (meta == null) {
-            // have cal min and max, compare
+            // not cal min and max, compare
             long max = 0;
             for (EventVertex ev : attr.getEdges()) {
               if (ev.timestamp() > max)
@@ -118,6 +118,17 @@ public abstract class Detector {
     }
     starts = DetectUtil.syncByQuery(p2starts, query);
     ends = DetectUtil.syncByQuery(p2ends, query);
+  }
+
+  protected void writeTrends(Iterator<EventTrend> trends, boolean inShort) {
+    try(BufferedWriter bw = new BufferedWriter(new FileWriter(new File(writePath,"cets")))) {
+      while (trends.hasNext()) {
+        EventTrend cet = trends.next();
+        bw.write(cet.shortString() + "\n");
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
 }

@@ -1,5 +1,3 @@
 package tg.dtg.graph;
 
-public interface Vertex {
-
-}
+public interface Vertex { }

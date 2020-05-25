@@ -29,6 +29,11 @@ public class Predicate implements Expression {
     ctag += 1;
   }
 
+  public Predicate(Operator op, int leftOperand, int rightOperand,Function<Value, Value> func) {
+    this(op, leftOperand, rightOperand, func, ctag);
+    ctag += 1;
+  }
+
   @Override
   public boolean isPredicate() {
     return true;

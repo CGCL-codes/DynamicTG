@@ -28,7 +28,7 @@ public class Stock extends Example {
   private final NumericValue end;
   private final NumericValue step;
 
-  public Stock(Argument args) {
+  public Stock(Argument args, double ratio) {
     super(args);
     template = new EventTemplate.Builder()
         .addStr("id")
@@ -36,7 +36,7 @@ public class Stock extends Example {
         .build();
     idPredicate = new Predicate(Operator.eq, template.indexOf("id"), -1);
     pricePredicate = new Predicate(Operator.gt, template.indexOf("price"),
-        template.indexOf("price"));
+        template.indexOf("price"),v->Value.numeric(v.numericVal()*ratio));
     isSimple = args.isSimple;
 
     String range = args.range.trim();
@@ -115,6 +115,6 @@ public class Stock extends Example {
 
     @Parameter(names = {"-r",
         "--range"}, description = "range for numeric, in the form of [start,end,step)")
-    String range = "[0,50,1)";
+    String range = "[0,50,0.01)";
   }
 }

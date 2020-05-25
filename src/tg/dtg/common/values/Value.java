@@ -1,5 +1,6 @@
 package tg.dtg.common.values;
 
+
 public abstract class Value implements Comparable<Value> {
 
   Object value;
@@ -26,6 +27,23 @@ public abstract class Value implements Comparable<Value> {
 
   public static Value numeric(double value) {
     return new NumericValue(value);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    Value value1 = (Value) o;
+    return value.equals(value1.value);
+  }
+
+  @Override
+  public int hashCode() {
+    return value.hashCode();
   }
 
   @Override

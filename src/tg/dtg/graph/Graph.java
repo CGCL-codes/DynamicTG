@@ -15,7 +15,9 @@ import tg.dtg.events.Event;
 import tg.dtg.events.EventTemplate;
 import tg.dtg.graph.construct.Constructor;
 import tg.dtg.graph.construct.dynamic.parallel.ParallelDynamicConstructor;
+import tg.dtg.graph.construct.dynamic.parallel.ParallelStaticDynamicEqConstructor;
 import tg.dtg.graph.detect.Detector;
+import tg.dtg.graph.detect.traversal.DfsBasedDetector;
 import tg.dtg.graph.detect.traversal.anchors.BasicAnchorBasedDetector;
 import tg.dtg.query.Query;
 
@@ -59,10 +61,12 @@ public class Graph {
     }
     ArrayList<Constructor> parallels = new ArrayList<>();
     ArrayList<Constructor> sequentials = new ArrayList<>();
+    ArrayList<Constructor> statics = new ArrayList<>();
     for (Constructor constructor : constructors) {
-      if (constructor instanceof ParallelDynamicConstructor) {
+      if (constructor instanceof ParallelDynamicConstructor ||
+      constructor instanceof ParallelStaticDynamicEqConstructor) {
         parallels.add(constructor);
-      } else {
+      }  else {
         sequentials.add(constructor);
       }
     }
@@ -77,6 +81,16 @@ public class Graph {
     if (!parallels.isEmpty()) {
       int parallism = getParallism();
       for (Constructor constructor : parallels) {
+        ArrayList<Iterator<EventVertex>> iterators = new ArrayList<>();
+        for (int i = 0; i < parallism; i++) {
+          iterators.add(new ParallelInputInterator(eventVertices, i, parallism));
+        }
+        constructor.parallelLink(iterators);
+      }
+    }
+    if(!statics.isEmpty()) {
+      int parallism = getParallism();
+      for (Constructor constructor : statics) {
         ArrayList<Iterator<EventVertex>> iterators = new ArrayList<>();
         for (int i = 0; i < parallism; i++) {
           iterators.add(new ParallelInputInterator(eventVertices, i, parallism));
@@ -105,19 +119,23 @@ public class Graph {
     );
   }
 
-  public void detect(int selectivity, boolean isWrite, int numIteration) {
+  public void detect(int selectivity, String writePath, int numIteration) {
     Detector detector = new BasicAnchorBasedDetector(eventVertices,
         constructors,query,
         selectivity, numIteration,
-        isWrite);
+        writePath);
+//    Detector detector = new DfsBasedDetector(eventVertices,constructors,query,writePath);
     detector.detect();
   }
 
   public void writeGraph(String path) {
     try {
       File dir = new File(path);
-      assert (dir.exists() || dir.mkdir()) :
-          "cannot find or create output path:" + dir.getCanonicalPath();
+      int tryCount = 3;
+      while (!dir.exists() && tryCount-- > 0) {
+        dir.mkdir();
+      }
+      assert dir.exists():"cannot find or create output path:" + dir.getCanonicalPath();
 
       File eventFile = new File(dir, "event");
       write(eventVertices.stream().map(EventVertex::shortString).iterator(), eventFile);
@@ -128,7 +146,10 @@ public class Graph {
       write(eventVertices.stream().flatMap(vertex -> vertex.edgeStrings().stream()).iterator(),
           new File(dir, "toEdges"));
 
-      write(attributes().stream().flatMap(vertex -> vertex.edgeStrings().stream()).iterator(),
+      write(attributes().stream()
+              .flatMap(vertex ->
+                  vertex.edgeStrings().stream())
+              .iterator(),
           new File(dir, "fromEdges"));
     } catch (IOException e) {
       e.printStackTrace();

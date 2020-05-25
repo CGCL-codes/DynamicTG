@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Supplier;
 import tg.dtg.cet.EventTrend;
 import tg.dtg.graph.AttributeVertex;
@@ -30,8 +29,8 @@ public abstract class AnchorBasedDetector extends Detector {
   public AnchorBasedDetector(ArrayList<EventVertex> eventVertices,
       ArrayList<Constructor> constructors,
       Query query,
-      int numIteration, boolean isWrite) {
-    super(eventVertices, constructors, query, isWrite);
+      int numIteration, String writePath) {
+    super(eventVertices, constructors, query, writePath);
     this.numIteration = numIteration;
   }
 
@@ -42,8 +41,10 @@ public abstract class AnchorBasedDetector extends Detector {
     log("begin detect");
     Map<Character, Collection<AttributeVertex>> anchors = selectAnchors();
     log("finish select anchors");
-    //fastPrefilter();
-    prefilter();
+    fastPrefilter();
+    starts = new HashSet<>();
+    starts.addAll(eventVertices);
+    //prefilter();
     log("finish prefilter");
     detectByAnchors(anchors);
     log("finish detect");

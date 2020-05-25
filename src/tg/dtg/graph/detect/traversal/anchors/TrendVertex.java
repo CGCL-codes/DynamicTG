@@ -1,10 +1,10 @@
 package tg.dtg.graph.detect.traversal.anchors;
 
 import java.util.ArrayList;
+import java.util.List;
 import tg.dtg.cet.EventTrend;
-import tg.dtg.graph.EventVertex;
 
-public class TrendVertex {
+public class TrendVertex implements Vertex {
   final EventTrend eventTrend;
   private ArrayList<AnchorVertex> vertices;
 
@@ -22,22 +22,19 @@ public class TrendVertex {
     vertices.add(attributeVertex);
   }
 
-  public void prepend(TrendVertex prev) {
-    eventTrend.prepend(prev.eventTrend);
-  }
-
   public TrendVertex copyAndAppend(TrendVertex next) {
     EventTrend eventTrend = this.eventTrend.copy();
     eventTrend.append(next.eventTrend);
     return new TrendVertex(eventTrend, next.vertices);
   }
 
-  public void addEvent(EventVertex vertex) {
-    eventTrend.append(vertex.event);
-  }
-
   public ArrayList<AnchorVertex> getEdges() {
     return vertices;
+  }
+
+  @Override
+  public List<? extends Vertex> cedges() {
+    return getEdges();
   }
 
   public String shortString() {

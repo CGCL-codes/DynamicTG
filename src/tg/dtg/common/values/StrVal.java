@@ -17,9 +17,4 @@ public class StrVal extends Value {
       throw new IllegalArgumentException("must be string");
     }
   }
-
-  @Override
-  public int hashCode() {
-    return value.hashCode();
-  }
 }

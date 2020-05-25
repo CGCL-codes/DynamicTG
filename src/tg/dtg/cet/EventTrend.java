@@ -1,57 +1,38 @@
 package tg.dtg.cet;
 
-import java.util.ArrayList;
-import java.util.stream.Collectors;
+import java.util.List;
 import tg.dtg.events.Event;
 
-public class EventTrend {
-  private ArrayList<Event> events;
+public abstract class EventTrend {
 
-  public EventTrend() {
-    this(new ArrayList<>());
+  public abstract List<Event> events();
+
+  public abstract void append(Event event);
+  public abstract void append(EventTrend eventTrend);
+
+  public abstract Event get(int index);
+
+  public Event head() {
+    return get(0);
   }
 
-  public EventTrend(Event event) {
-    this();
-    events.add(event);
+  public Event tail() {
+    return get(size()-1);
   }
 
-  private EventTrend(ArrayList<Event> events) {
-    this.events = events;
-  }
+  public abstract int size();
 
-  public void prepend(EventTrend trend) {
-    ArrayList<Event> events = new ArrayList<>(trend.events);
-    events.addAll(this.events);
-    this.events = events;
-  }
-
-  public void append(Event event) {
-    events.add(event);
-  }
-
-  public void append(EventTrend trend) {
-    events.addAll(trend.events);
-  }
+  public abstract EventTrend copy();
 
   public long start() {
-    return events.get(0).timestamp;
+    return head().timestamp;
   }
 
   public long end() {
-    return events.get(events.size() - 1).timestamp;
+    return tail().timestamp;
   }
 
-  public EventTrend copy() {
-    ArrayList<Event> events = new ArrayList<>(this.events);
-    return new EventTrend(events);
-  }
-
-  public String shortString() {
-    return "[" + events.stream()
-        .map(e->e.timestamp+"")
-        .collect(Collectors.joining(", ")) + "]";
-  }
+  public abstract String shortString();
 
   @Override
   public String toString() {

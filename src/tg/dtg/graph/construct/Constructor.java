@@ -16,8 +16,12 @@ public abstract class Constructor {
     this.predicate = predicate;
   }
 
-  public abstract void parallelLink(ArrayList<Iterator<EventVertex>> iterators);
-  public abstract void link(EventVertex eventVertex);
+  public void parallelLink(ArrayList<Iterator<EventVertex>> iterators) {
+    throw new UnsupportedOperationException("");
+  }
+  public void link(EventVertex eventVertex) {
+    throw new UnsupportedOperationException("");
+  }
 
   public void invokeEventsEnd() {
   }

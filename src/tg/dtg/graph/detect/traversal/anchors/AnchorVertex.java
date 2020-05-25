@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public class AnchorVertex {
+public class AnchorVertex implements Vertex{
 
   private final String tag;
   private ArrayList<TrendVertex> vertices;
@@ -27,6 +27,24 @@ public class AnchorVertex {
     this.vertices.addAll(vertices);
   }
 
+  public void mergeInto(ArrayList<AnchorVertex> vertices) {
+    int size = 0;
+    for(AnchorVertex anchorVertex:vertices) {
+      size += anchorVertex.getEdges().size();
+    }
+    this.vertices = new ArrayList<>(size);
+    for(AnchorVertex anchorVertex:vertices) {
+      this.vertices.addAll(anchorVertex.getEdges());
+    }
+  }
+
+  public boolean isStart(){
+    return tag.startsWith("start");
+  }
+
+  public boolean isEnd() {
+    return tag.startsWith("end");
+  }
 
   public String shortString() {
     return tag;
@@ -43,5 +61,10 @@ public class AnchorVertex {
   @Override
   public String toString() {
     return "AnchorVertex{" + tag + '}';
+  }
+
+  @Override
+  public List<? extends Vertex> cedges() {
+    return getEdges();
   }
 }

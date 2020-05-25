@@ -28,6 +28,9 @@ public class Config {
   @Parameter(names = {"-out"}, description = "if write results")
   boolean isWrite;
 
+  @Parameter(names = {"-pdfs"}, description = "if parallel dfs")
+  boolean pdfs;
+
   @Parameter(names = {"-iter"}, description = "num iteration, default 1, "
       + "which means do not further iterate")
   int numInteration = 1;

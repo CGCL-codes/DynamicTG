@@ -21,13 +21,12 @@ public class NumericValue extends Value {
     }
   }
 
-  @Override
-  public String strVal() {
-    throw new UnsupportedOperationException("not a str value");
+  public void add(NumericValue nv) {
+    this.value = this.numericVal() + nv.numericVal();
   }
 
   @Override
-  public int hashCode() {
-    return value.hashCode();
+  public String strVal() {
+    throw new UnsupportedOperationException("not a str value");
   }
 }

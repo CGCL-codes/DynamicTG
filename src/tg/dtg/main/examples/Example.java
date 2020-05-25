@@ -17,6 +17,8 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 import tg.dtg.events.Event;
 import tg.dtg.events.EventTemplate;
+import tg.dtg.graph.AttributeVertex;
+import tg.dtg.graph.EventVertex;
 import tg.dtg.graph.Graph;
 import tg.dtg.graph.construct.Constructor;
 import tg.dtg.query.Query;
@@ -50,26 +52,39 @@ public abstract class Example {
     selectivity = args.selectivity;
     isWrite = args.isWrite;
     numInteration = args.numInteration;
+    Global.pdfs = args.pdfs;
   }
 
   public static Example getExample(String[] args) {
     Preconditions.checkArgument(args.length > 0, "must specify example name");
     Config config;
     String[] nargs = Arrays.copyOfRange(args, 1, args.length);
-    if ("stock".equals(args[0])) {
+    if (args[0].startsWith("stock")) {
+      String ratios = args[0].substring(5);
+      double ratio = 1;
+      if(ratios.length() > 0) ratio = Double.parseDouble(ratios);
       config = Stock.getArgument();
       JCommander.newBuilder()
           .addObject(config)
           .build()
           .parse(nargs);
-      return new Stock((Stock.Argument) config);
-    } else {
+      return new Stock((Stock.Argument) config,ratio);
+    } else if("kite".equalsIgnoreCase(args[0])){
+      config = new Config();
+      JCommander.newBuilder()
+          .addObject(config)
+          .build()
+          .parse(nargs);
+      return new Kite(config);
+    }
+    else {
       config = new Config();
       return new EmptyExample(config);
     }
   }
 
   public void start() {
+    String localParameters = parameters();
     String parameters = "************************************\n"
         + "name: " + getName() + "\n"
         + "input events: " + path + "\n"
@@ -77,7 +92,7 @@ public abstract class Example {
         + "parallism: " + parallism + "\n"
         + "selectivity: " + selectivity + "\n"
         + "isWrite: " + isWrite + "\n"
-        + parameters() + "\n"
+        + (localParameters == null ? "" : (localParameters + "\n"))
         + "************************************";
     System.out.println(parameters);
 
@@ -86,10 +101,15 @@ public abstract class Example {
         getQuery(), getConstructors());
     graph.construct();
 
+    wait(1);
+
     if (graphDir != null && graphDir.length() > 0) {
       graph.writeGraph(graphDir);
     }
-    graph.detect(selectivity, isWrite, numInteration);
+    //checkNull(graph);
+    if(selectivity > 0) {
+      graph.detect(selectivity, isWrite ? graphDir : null, numInteration);
+    }
 
     if (parallism > 0) {
       Global.close(100L * (wl + sl * (numWindow - 1)), TimeUnit.MILLISECONDS);
@@ -148,6 +168,35 @@ public abstract class Example {
     Iterator<String> it = new FileIterator(path);
     EventTemplate template = getTemplate();
     return Iterators.transform(it, template::str2event);
+  }
+
+  private void wait(int sec) {
+    try {
+      TimeUnit.SECONDS.sleep(sec);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+  }
+
+  /**
+   * for debug
+   */
+  private void checkNull(Graph graph) {
+    for(EventVertex ev: graph.events()) {
+      assert ev.event != null;
+      for(ArrayList<AttributeVertex> edges: ev.getEdges().values()) {
+        for(AttributeVertex av:edges) {
+          assert av != null;
+        }
+      }
+    }
+
+    for(AttributeVertex av: graph.attributes()) {
+      assert av != null;
+      for(EventVertex ev: av.getEdges()) {
+        assert ev != null;
+      }
+    }
   }
 
   protected static class FileIterator implements Iterator<String> {
