@@ -42,8 +42,6 @@ public abstract class AnchorBasedDetector extends Detector {
     Map<Character, Collection<AttributeVertex>> anchors = selectAnchors();
     log("finish select anchors");
     fastPrefilter();
-    starts = new HashSet<>();
-    starts.addAll(eventVertices);
     //prefilter();
     log("finish prefilter");
     detectByAnchors(anchors);

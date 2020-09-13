@@ -112,10 +112,10 @@ public class Graph {
     System.out.println("events: " + eventVertices.size() + "\n"
         + "attrs: " + constructors.stream().mapToInt(Constructor::countAttr).reduce(Integer::sum)
         .getAsInt() + "\n"
-        + "from edges: " + constructors.stream().mapToInt(Constructor::countFrom)
-        .reduce(Integer::sum).getAsInt() + "\n"
-        + "to edges: " + constructors.stream().mapToInt(Constructor::countTo).reduce(Integer::sum)
-        .getAsInt()
+        + "from edges: " + constructors.stream().mapToLong(Constructor::countFrom)
+        .reduce(Long::sum).getAsLong() + "\n"
+        + "to edges: " + constructors.stream().mapToLong(Constructor::countTo).reduce(Long::sum)
+        .getAsLong()
     );
   }
 

@@ -84,13 +84,13 @@ public class BasicAnchorBasedDetector extends AnchorBasedDetector {
         anchorVertices.add(anchorVertex);
         isAnchors.put(vertex, anchorVertex);
       }
-      //ConcurrentHashMap<Thread, LinkedBlockingQueue<Long>> taskTms = new ConcurrentHashMap<>();
+//      ConcurrentHashMap<Thread, LinkedBlockingQueue<Long>> taskTms = new ConcurrentHashMap<>();
       int mode = 1;
       if (mode == 1) {
         ArrayList<Runnable> tasks = new ArrayList<>(anchors.size() + 1);
         memoryCounts = new ConcurrentHashMap<>();
 
-        int size = (int) (Math.ceil(starts.size() * 1.0 / 1024));
+        int size = (int) (Math.ceil(starts.size() * 1.0 / maxNumStarts));
         Iterator<EventVertex> iterator = starts.iterator();
 
         for (int i = 0; i < maxNumStarts; i++) {

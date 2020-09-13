@@ -9,8 +9,8 @@ import tg.dtg.query.Predicate;
 public abstract class Constructor {
 
   protected final Predicate predicate;
-  protected int countF;
-  protected int countT;
+  protected long countF;
+  protected long countT;
 
   protected Constructor(Predicate predicate) {
     this.predicate = predicate;
@@ -34,11 +34,11 @@ public abstract class Constructor {
     return 0;
   }
 
-  public int countFrom() {
+  public long countFrom() {
     return countF;
   }
 
-  public int countTo() {
+  public long countTo() {
     return countT;
   }
 

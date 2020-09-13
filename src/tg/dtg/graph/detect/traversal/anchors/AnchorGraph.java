@@ -202,6 +202,7 @@ public class AnchorGraph {
      */
     private int status;
     private List<StealBatchDFSTask> otherTasks;
+    private static AtomicInteger idleCount = new AtomicInteger(0);
 
     public StealBatchDFSTask(AtomicInteger startIndex, ArrayList<AnchorVertex> startVertices,
         AnchorVertex endVertex, Consumer<EventTrend> outputFunc,
@@ -240,19 +241,23 @@ public class AnchorGraph {
         }else break;
       }
       int lstatus;
-      while (true){
-        lstatus = steal();
-        if (lstatus < 0) {
-          System.out.println("1.pdfs " + taskId + " complete");
-          status = 100;
-          return;
-        }else{
-          try {
-            doDFS();
-          } catch (Exception e) {
-            e.printStackTrace();
+      try {
+        while (true) {
+          lstatus = steal();
+          if (lstatus < 0) {
+            System.out.println("1.pdfs " + taskId + " complete");
+            status = 100;
+            return;
+          } else {
+            try {
+              doDFS();
+            } catch (Exception e) {
+              e.printStackTrace();
+            }
           }
         }
+      }catch (Exception e){
+        e.printStackTrace();
       }
     }
 
@@ -260,6 +265,7 @@ public class AnchorGraph {
       //System.out.println(taskId + " want to steal a work");
       status = 2;
       idleTasks.offer(this);
+      idleCount.incrementAndGet();
       try {
         while (status == 2) {
           TimeUnit.MICROSECONDS.sleep(500);
@@ -267,6 +273,7 @@ public class AnchorGraph {
 
           for (StealBatchDFSTask otherTask : otherTasks) {
             if (otherTask.status == 1) {
+              System.out.println(otherTask.taskId + " " + otherTask.thread + " status 1");
               hasWorkTask = true;
               break;
             }
@@ -295,12 +302,15 @@ public class AnchorGraph {
 
     private void doDFS() {
       StealBatchDFSTask idelTask;
+      if(idleCount.intValue() > 0){
       if ((idelTask = idleTasks.poll()) !=null) {
+        idleCount.decrementAndGet();
         idelTask.path.clear();
         idelTask.path.addAll(this.path);
         idelTask.cur = this.cur;
+//        idelTask.status = 1;
         return;
-      }
+      }}
       Vertex localCur = cur;
       if (localCur instanceof TrendVertex) { // cur is a trend
         for (Vertex vertex : localCur.cedges()) {
