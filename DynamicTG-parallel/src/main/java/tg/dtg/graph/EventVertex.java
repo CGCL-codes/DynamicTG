@@ -11,6 +11,7 @@ public class EventVertex implements Vertex {
   public final Event event;
 
   private final Map<Character, ArrayList<AttributeVertex>> edges;
+  private int edgeCount = 0;
 
   public EventVertex(Event event) {
     this.event = event;
@@ -26,6 +27,9 @@ public class EventVertex implements Vertex {
       egs = edges.get(c);
     }
     egs.add(vertex);
+//    edgeCount += 1;
+//    int p = edgeCount;
+//    while (p-->0);
   }
 
   public long timestamp() {

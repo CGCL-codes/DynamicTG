@@ -1,9 +1,9 @@
 package tg.dtg.common.values;
 
-import static tg.dtg.util.Global.numericValueComparator;
-
 import com.google.common.base.Preconditions;
 import javax.annotation.Nonnull;
+
+import static tg.dtg.util.Config.numericValueComparator;
 
 public class NumericValue extends Value {
 

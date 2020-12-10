@@ -18,6 +18,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
+import java.util.stream.Stream;
 import tg.dtg.common.values.NumericValue;
 import tg.dtg.common.values.Value;
 import tg.dtg.graph.AttributeVertex;
@@ -26,6 +33,7 @@ import tg.dtg.graph.construct.dynamic.RangeAttributeVertex;
 import tg.dtg.query.Operator;
 import tg.dtg.query.Predicate;
 import tg.dtg.util.Global;
+import tg.dtg.util.Iters;
 import tg.dtg.util.MergedIterator;
 
 public class ParallelManager {
@@ -61,7 +69,7 @@ public class ParallelManager {
     }
   }
 
-  private LinkedList<NumericValue> merge(Iterator<NumericValue> left,
+  private LinkedList<NumericValue>  merge(Iterator<NumericValue> left,
       Iterator<NumericValue> right) {
     Comparator<NumericValue> cmp = Global.numericValueComparator();
     LinkedList<NumericValue> list = new LinkedList<>();
@@ -158,12 +166,87 @@ public class ParallelManager {
       throws ExecutionException, InterruptedException {
     ArrayList<Future<Integer>> futures = new ArrayList<>();
     for (Iterator<TupleEdge<EventVertex, NumericValue, Object>> it : its) {
-      futures.add(executor.submit(new CopyToEdge(it, vertices, predicate)));
+//      futures.add(executor.submit(new CopyToEdge(it, vertices, predicate)));
+      futures.add(executor.submit(new AtomicSplitCopyToEdge(its, vertices, predicate)));
     }
     int count = 0;
     for (Future<Integer> future : futures) {
       count += future.get();
     }
+    return count;
+  }
+
+  public int reduceToEdges2(ArrayList<Iterator<TupleEdge<EventVertex, NumericValue, Object>>> its,
+                           Predicate predicate, ArrayList<AttributeVertex> vertices)
+          throws ExecutionException, InterruptedException {
+    ArrayList<ArrayList<ArrayList<EventVertex>>> tfids = new ArrayList<>();
+    // partitions -> attr index -> events
+    for (int i = 0; i < its.size(); i++) {
+      tfids.add(new ArrayList<>());
+    }
+    long s1 = System.nanoTime();
+    ArrayList<Runnable> tasks = new ArrayList<>();
+    for (int k = 0; k < its.size(); k ++) {
+      final int p = k;
+      final Iterator<TupleEdge<EventVertex, NumericValue, Object>> it = its.get(p);
+      tasks.add(()->{
+        int i = 0;
+        ArrayList<ArrayList<EventVertex>> ids = tfids.get(p);
+        while (it.hasNext()) {
+          TupleEdge<EventVertex, NumericValue, Object> edge = it.next();
+          while (!((RangeAttributeVertex)vertices.get(i)).getRange().contains(edge.getTarget())) {
+            i++;
+          }
+          while (ids.size() <= i) {
+            ids.add(new ArrayList<>());
+          }
+          ids.get(i).add(edge.getSource());
+        }
+      });
+    }
+    Global.runAndSync(tasks);
+
+    long s2 = System.nanoTime();
+    ArrayList<Supplier<Integer>> ctasks = new ArrayList<>();
+//    final int[] counts = new int[its.size()];
+    final int step = 1;
+    final AtomicInteger pointer = new AtomicInteger(0);
+    for (int i = 0; i < its.size(); i++) {
+      final int p = i;
+//      final Iterator<Integer> indices = Iters.stepIndices(i, its.size(), vertices.size());
+      ctasks.add(()->{
+        int cnt = 0;
+        switch (predicate.op) {
+          case gt:
+            boolean canRun = true;
+            while (canRun) {
+              canRun = false;
+              int s = pointer.getAndAdd(step);
+              for(int k=s;k<s+step;k++) {
+                for (ArrayList<ArrayList<EventVertex>> list : tfids) {
+                  if (k < list.size()) {
+                    ArrayList<EventVertex> evs = list.get(k);
+                    for (EventVertex ev : evs) {
+                      for (int j = k + 1; j < vertices.size(); j++) {
+                        ev.linkToAttr(predicate.tag, vertices.get(j));
+                        cnt++;
+                      }
+                    }
+                    canRun = true;
+                  }
+                }
+              }
+            }
+            break;
+          default:
+            break;
+        }
+        return cnt;
+      });
+    }
+    int count = Global.callAndSync(ctasks).stream().mapToInt(c->c).sum();
+    long e = System.nanoTime();
+    System.out.println("reduce to-edges "+Global.toMillis(s2-s1) + ", " + Global.toMillis(e-s2));
     return count;
   }
 
@@ -288,6 +371,7 @@ public class ParallelManager {
     public Integer call() {
       int i = 0;
       int count = 0;
+      long st = System.nanoTime();
       while (iterator.hasNext()) {
         TupleEdge<EventVertex, NumericValue, Object> edge = iterator.next();
         while (!((RangeAttributeVertex)vertices.get(i)).getRange().contains(edge.getTarget())) {
@@ -307,7 +391,87 @@ public class ParallelManager {
             break;
         }
       }
+      long et = System.nanoTime();
+      System.out.println("task time " + (TimeUnit.NANOSECONDS.toMillis(et-st)));
       return count;
+    }
+  }
+
+  private static class AtomicSplitCopyToEdge implements Callable<Integer> {
+    private static final int SPLIT_SIZE = 102400;
+    private static final PriorityBlockingQueue<TEIterContainer> containers = new PriorityBlockingQueue<>();
+    private static final AtomicInteger completeSize = new AtomicInteger(0);
+    private final ArrayList<AttributeVertex> vertices;
+    private final Predicate predicate;
+    private final int expectSize;
+
+    public AtomicSplitCopyToEdge(ArrayList<Iterator<TupleEdge<EventVertex, NumericValue, Object>>> its,
+                                 ArrayList<AttributeVertex> vertices, Predicate predicate) {
+      this.vertices = vertices;
+      this.predicate = predicate;
+      if(containers.isEmpty()){
+        its.forEach(it->containers.add(new TEIterContainer(it)));
+        completeSize.set(0);
+      }
+      expectSize = containers.size();
+    }
+
+    @Override
+    public Integer call() throws Exception {
+      int count = 0;
+      while (completeSize.get() < expectSize) {
+        TEIterContainer container = containers.poll();
+        if (container == null) continue;
+        long st = System.nanoTime();
+        Iterator<TupleEdge<EventVertex, NumericValue, Object>> it = container.it;
+        int cnt = 0;
+        int i = container.pointer;
+        boolean hasNext;
+        while ((hasNext = it.hasNext()) && cnt < SPLIT_SIZE) {
+          TupleEdge<EventVertex, NumericValue, Object> edge = it.next();
+          cnt ++;
+          while (!((RangeAttributeVertex)vertices.get(i)).getRange().contains(edge.getTarget())) {
+            i++;
+          }
+          switch (predicate.op) {
+            case gt:
+              for (int j = i + 1; j < vertices.size(); j++) {
+                edge.getSource().linkToAttr(predicate.tag, vertices.get(j));
+                count++;
+              }
+              break;
+            case eq:
+              edge.getSource().linkToAttr(predicate.tag, vertices.get(i));
+              break;
+            default:
+              break;
+          }
+        }
+        if(!hasNext) {
+          completeSize.incrementAndGet();
+        }else {
+          container.pointer = i;
+          containers.offer(container);
+        }
+        long et = System.nanoTime();
+        System.out.println(String.format("processing %d events in %dms",cnt, TimeUnit.NANOSECONDS.toMillis(et-st)));
+      }
+      return count;
+    }
+
+    private static class TEIterContainer implements Comparable<TEIterContainer>{
+      int pointer;
+      Iterator<TupleEdge<EventVertex, NumericValue, Object>> it;
+
+      public TEIterContainer(Iterator<TupleEdge<EventVertex, NumericValue, Object>> it) {
+        this.pointer = 0;
+        this.it = it;
+      }
+
+      @Override
+      public int compareTo(TEIterContainer o) {
+        return Integer.compare(pointer,o.pointer);
+      }
     }
   }
 }

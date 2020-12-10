@@ -112,6 +112,7 @@ public abstract class Example {
     }
 
     if (parallism > 0) {
+      System.out.println(Global.threadInfo());
       Global.close(100L * (wl + sl * (numWindow - 1)), TimeUnit.MILLISECONDS);
     }
   }
