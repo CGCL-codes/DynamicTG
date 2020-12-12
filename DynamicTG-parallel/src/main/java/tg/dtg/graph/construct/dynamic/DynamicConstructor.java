@@ -4,6 +4,7 @@ import java.util.Comparator;
 import tg.dtg.common.values.NumericValue;
 import tg.dtg.graph.construct.Constructor;
 import tg.dtg.query.Predicate;
+import tg.dtg.util.Config;
 import tg.dtg.util.Global;
 
 public abstract class DynamicConstructor extends Constructor {
@@ -19,6 +20,6 @@ public abstract class DynamicConstructor extends Constructor {
     this.start = start;
     this.end = end;
     this.step = step;
-    this.cmp = Global.numericValueComparator();
+    this.cmp = Config.numericValueComparator();
   }
 }

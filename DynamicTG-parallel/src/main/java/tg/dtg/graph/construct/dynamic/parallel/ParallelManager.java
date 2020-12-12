@@ -32,6 +32,7 @@ import tg.dtg.graph.EventVertex;
 import tg.dtg.graph.construct.dynamic.RangeAttributeVertex;
 import tg.dtg.query.Operator;
 import tg.dtg.query.Predicate;
+import tg.dtg.util.Config;
 import tg.dtg.util.Global;
 import tg.dtg.util.Iters;
 import tg.dtg.util.MergedIterator;
@@ -71,7 +72,7 @@ public class ParallelManager {
 
   private LinkedList<NumericValue>  merge(Iterator<NumericValue> left,
       Iterator<NumericValue> right) {
-    Comparator<NumericValue> cmp = Global.numericValueComparator();
+    Comparator<NumericValue> cmp = Config.numericValueComparator();
     LinkedList<NumericValue> list = new LinkedList<>();
     Iterator<NumericValue> it = new DistinctMergeIterator<>(left, right, cmp);
     Iterators.addAll(list, it);
@@ -84,7 +85,7 @@ public class ParallelManager {
       NumericValue end,
       NumericValue step,
       Operator operator) {
-    Comparator<NumericValue> cmp = Global.numericValueComparator();
+    Comparator<NumericValue> cmp = Config.numericValueComparator();
     Iterator<NumericValue> it = new DistinctMergeIterator<>(left, right, cmp);
     ArrayList<AttributeVertex> ranges = new ArrayList<>();
     Range<NumericValue> range;
