@@ -1,7 +1,9 @@
 package tg.dtg.common.values;
 
 
-public abstract class Value implements Comparable<Value> {
+import java.io.Serializable;
+
+public abstract class Value implements Comparable<Value>, Serializable {
 
   Object value;
 

@@ -17,6 +17,8 @@ public class Event {
     return values[i];
   }
 
+  public int size() {return values.length;}
+
   @Override
   public String toString() {
     return "Event{" + timestamp
