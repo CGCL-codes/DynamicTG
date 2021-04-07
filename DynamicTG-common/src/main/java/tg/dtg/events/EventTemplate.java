@@ -1,11 +1,12 @@
 package tg.dtg.events;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 import tg.dtg.common.values.Value;
 import tg.dtg.common.values.Value.ValType;
 
-public class EventTemplate {
+public class EventTemplate implements Serializable {
 
   private Attribute[] attributes;
 

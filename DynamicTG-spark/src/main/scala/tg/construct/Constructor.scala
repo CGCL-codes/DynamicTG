@@ -1,52 +1,61 @@
 package tg.construct
 
-import java.util
-
 import org.apache.spark._
 import org.apache.spark.rdd.RDD
-import org.apache.spark.streaming._
+import tg.Helper._
 import tg.dtg.common.values.Value
-import tg.dtg.events.{Event, EventTemplate}
+import tg.dtg.events.Event
 import tg.dtg.query.{Operator, Predicate}
 import tg.graph.{Attr, Attribute, Graph, RangeAttr}
 
-class Constructor(val eventTemplate: EventTemplate,
-                  predicate: Predicate,
-                  start: Value = null, end: Value = null)(implicit val sc: SparkContext = null) {
-  private val funcs = predicate.op match {
-    case Operator.gt => PredicatedFuncs.gt()
-    case _ => throw new UnsupportedOperationException(s"unsupported operator ${predicate.op}")
+class Constructor extends Serializable {
+
+  def process(events: RDD[Event], predicate: Predicate, wl: Long,
+              start: Value = Value.numeric(0), end: Value = Value.numeric(Double.MaxValue))(callback: Graph => Unit)(implicit sc: SparkContext): Unit = {
+      val count = events.count()
+      if(count > 0) {
+        println(s"start processing ${count} events")
+        val startTime = System.currentTimeMillis()
+
+        val graph =
+          if (predicate.op == Operator.eq) processEqWindow(events, predicate)
+          else processWindow(events, predicate, start, end)
+
+        graph.events.setName("events").cache()
+        graph.attrs.setName("attrs").cache()
+        graph.fedges.setName("fedges").cache()
+        graph.tedges.setName("tedges").cache()
+
+        val eCount = graph.events.count()
+        val aCount = graph.attrs.count()
+        val fCount = graph.fedges.count()
+        val tCount = graph.tedges.count()
+
+        val endTime = System.currentTimeMillis()
+
+        println(s"finish construct a graph, " +
+          s"events $eCount, attrs $aCount, from edges $fCount, to edges $tCount, " +
+          s"using ${endTime - startTime}")
+        callback.apply(graph)
+      }
+
   }
 
-  private def createContext(): StreamingContext = {
-    if(sc == null) {
-      val conf = new SparkConf().setAppName("tg-construct")
-      new StreamingContext(conf, Seconds(1))
-    }else new StreamingContext(sc, Seconds(1))
-  }
-
-  def process(file: String, wl: Long): Unit = {
-    val ssc = createContext()
-
-    val events = ssc.receiverStream(new FileSource(file, eventTemplate))
-
-    val processFunc = if(predicate.op == Operator.eq) processEqWindow else processWindow
-    val windowed = events.window(Milliseconds(wl),Milliseconds(wl))
-    windowed.fo
-//    foreachRDD(rdd => processFunc(rdd))
-  }
-
-  def processEqWindow(events: RDD[Event]): Graph = {
+  def processEqWindow(events: RDD[Event], predicate: Predicate): Graph = {
     val keyedEvents = events.zipWithUniqueId().map{case (e,id)=>(id,e)}
+    val plid = predicate.leftOperand
+    val prid = predicate.rightOperand
+    val func = predicate.func
     val fCaches = keyedEvents.map{case (id,e) =>
-      (e.get(predicate.leftOperand),(id, e.timestamp))
+      (e.get(plid),(id, e.timestamp))
     }
     val tCaches = keyedEvents.map { case (id, e) =>
-      (predicate.func.apply(e.get(predicate.rightOperand)),(id, e.timestamp))
+      (func.apply(e.get(prid)),(id, e.timestamp))
     }
 
     val attrs = fCaches.map(_._1)
       .union(tCaches.map(_._1))
+      .distinct()
       .zipWithUniqueId()
 
     val fedges = fCaches.join(attrs)
@@ -55,10 +64,19 @@ class Constructor(val eventTemplate: EventTemplate,
     val tedges = tCaches.join(attrs)
       .map{case (_,((eid, t),aid)) => (eid,(aid,t)) }
 
-    new Graph(keyedEvents, attrs.map{case (v,id)=>(id,Attr(v))}, fedges, tedges)
+    new Graph(keyedEvents, attrs.map{case (v,id)=>(id,Attr(v))}, fedges, tedges,false)
   }
 
-  def processWindow(events: RDD[Event]): Graph = {
+  def processWindow(events: RDD[Event],
+                    predicate: Predicate,
+                    start: Value, end: Value): Graph = {
+
+    val funcs = predicate.op match {
+      case Operator.gt => PredicatedFuncs.gt()
+      case Operator.eq => null
+      case _ => throw new UnsupportedOperationException(s"unsupported operator ${predicate.op}")
+    }
+
     val keyedEvents = events.zipWithUniqueId().map{case (e,id)=>(id,e)}
     val fCaches = keyedEvents.map{case (id,e) =>
       (e.get(predicate.leftOperand),id, e.timestamp)
@@ -81,12 +99,19 @@ class Constructor(val eventTemplate: EventTemplate,
           throw new IllegalArgumentException("data not valid")
         }
       }.map{case (id,range)=>(id+1, range)}
+
     val rangeIndexes = indexedRanges.mapPartitionsWithIndex{case (id,iter) =>
       Iterator((id,mkTreeMap(iter.map(item => (item._2.asInstanceOf[RangeAttr].range.lowerEndpoint(), item._1)))))
     }
-    val globalIndexes = mkTreeMap(rangeIndexes.map {case (id,tree) =>
-      (tree.firstKey(), id)
+    val globalIndexes = mkTreeMap(rangeIndexes.flatMap {case (id,tree) =>
+      if(tree.isEmpty) None
+      else Some((tree.firstKey(), id))
     }.collect().iterator)
+
+    fCaches.cache().setName("fCaches")
+    indexedRanges.count()
+    tCaches.cache().setName("tCaches")
+    rangeIndexes.count()
 
     val fedges = fCaches.map{case (v,eid, t) => (funcs.mapPartitionId(globalIndexes,v),(v,eid, t))}
       .join(rangeIndexes)
@@ -98,7 +123,7 @@ class Constructor(val eventTemplate: EventTemplate,
       .map{case (_,((eid,v,timestamp),tree))=>
         (eid, (funcs.getAttrId(tree,v),timestamp))
       }
-    new Graph(keyedEvents, indexedRanges, fedges, tedges)
+    new Graph(keyedEvents, indexedRanges, fedges, tedges, true)
   }
 
   private def mkTreeMap[K,V](elems: Iterator[(K,V)]): java.util.TreeMap[K,V] = {

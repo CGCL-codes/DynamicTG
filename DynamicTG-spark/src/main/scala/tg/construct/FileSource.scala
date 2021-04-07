@@ -10,28 +10,27 @@ import scala.io.Source
 
 class FileSource(file: String, eventTemplate: EventTemplate) extends Receiver[Event](StorageLevel.MEMORY_AND_DISK){
   private var isRun = true
-  private val thread: Thread = new Thread(new Runnable {
-    override def run(): Unit = {
-      val source = Source.fromFile(file)
-      val it = source.getLines()
-      var current = System.currentTimeMillis()
-      var now: Long = current
-      while (isRun && it.hasNext) {
-        val line = it.next()
-        val event = eventTemplate.str2event(line)
-        while (isRun && now - current < event.timestamp) {
-          now = System.currentTimeMillis()
-          TimeUnit.MILLISECONDS.sleep(1)
-        }
-        if(now - current < event.timestamp) store(event)
-        current = now
-      }
-    }
-  })
 
   override def onStart(): Unit = {
     isRun = true
-    thread.start()
+    new Thread(new Runnable {
+      override def run(): Unit = {
+        val source = Source.fromFile(file)
+        val it = source.getLines()
+        val start = System.currentTimeMillis()
+        var now: Long = start
+        while (isRun && it.hasNext) {
+          val line = it.next()
+          val event = eventTemplate.str2event(line)
+          while (isRun && now - start < event.timestamp) {
+            now = System.currentTimeMillis()
+            TimeUnit.MILLISECONDS.sleep(1)
+          }
+          if(now - start >= event.timestamp) store(event)
+        }
+        source.close()
+      }
+    }).start()
   }
 
   override def onStop(): Unit = {

@@ -25,7 +25,7 @@ class Graph(val events: RDD[(Long,Event)],
     import Graph._
 
     val dir = new File(path)
-    assert(!dir.exists() && dir.mkdir(), "no such directory and cannot mkdir")
+    assert(dir.exists() || dir.mkdir(), s"no such directory and cannot mkdir: ${dir.getCanonicalPath}")
 
     events.map{case (id,e)=> event2str(id,e)}
       .saveAsTextFile(new File(dir,"events").getCanonicalPath)
@@ -41,7 +41,7 @@ class Graph(val events: RDD[(Long,Event)],
 object Graph {
   def read(path: String)(implicit sc:SparkContext): Graph = {
     val dir = new File(path)
-    assert(!dir.exists(), "no such directory and cannot mkdir")
+    assert(!dir.exists(), s"no such directory and cannot mkdir: ${dir.getCanonicalPath}")
 
     val efile = new File(dir,"events")
     val afile = new File(dir,"attrs")
@@ -50,7 +50,7 @@ object Graph {
 
     new Graph(
       sc.textFile(efile.getCanonicalPath)
-        .map(str2edge),
+        .map(str2event),
       sc.textFile(afile.getCanonicalPath)
         .map(str2attr),
       sc.textFile(ffile.getCanonicalPath)
@@ -73,8 +73,8 @@ object Graph {
     val sps = str.split(",")
     val id = sps(0).toLong
     val timestamp = sps(1).toLong
-    val vs = sps.view(2,sps.length)
-      .map(s2v).toArray
+    val vs = sps.slice(2,sps.length)
+      .map(s2v)
     (id,new Event(timestamp,vs))
   }
 

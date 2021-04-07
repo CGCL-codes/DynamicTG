@@ -1,9 +1,7 @@
 package tg.dtg.query;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
 
 import tg.dtg.common.values.Value;
 

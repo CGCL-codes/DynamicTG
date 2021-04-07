@@ -1,10 +1,11 @@
 package tg.dtg.events;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 import tg.dtg.common.values.Value;
 
-public class Event {
+public class Event implements Serializable {
   public final long timestamp;
   protected Value[] values;
 

@@ -3,7 +3,7 @@ package tg.graph
 import com.google.common.collect
 import tg.dtg.common.values.Value
 
-trait Attribute
+trait Attribute extends Serializable
 
 case class RangeAttr(range: collect.Range[Value]) extends Attribute
 

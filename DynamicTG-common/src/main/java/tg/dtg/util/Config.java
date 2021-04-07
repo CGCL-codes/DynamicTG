@@ -9,14 +9,13 @@ public class Config {
   private static boolean isSetValueConfig = false;
   private static double precison;
 
-  private static Comparator<NumericValue> DEFAULT_NUMERIC_COMPARATOR;
+  private static Comparator<NumericValue> DEFAULT_NUMERIC_COMPARATOR = new NumericValueComparator();
 
   public static Comparator<NumericValue> numericValueComparator(double step) {
     return new NumericValueComparator(step);
   }
 
   public static Comparator<NumericValue> numericValueComparator() {
-    assert isSetValueConfig;
     return DEFAULT_NUMERIC_COMPARATOR;
   }
 

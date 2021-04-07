@@ -8,16 +8,9 @@ import tg.graph.Graph
 
 import scala.collection.mutable.ArrayBuffer
 
-class Detector(val graph: Graph,
-               val predicate: Predicate)(implicit val sc: SparkContext = null) {
+class Detector extends Serializable {
 
-  private def createContext: SparkContext = if(sc==null) {
-    val conf = new SparkConf().setAppName("tg-construct")
-    new SparkContext(conf)
-  }else sc
-
-  def process(): Unit = {
-    val sc = createContext
+  def process(graph: Graph)(callback: RDD[Array[Event]] => Unit): Unit = {
 
     // a valid short path is two connected edges that start from an event and end in another event
     // where the timestamp of the later event is greater than that of the previous one
@@ -25,11 +18,11 @@ class Detector(val graph: Graph,
       (aid,(eid,(aid,timestamp)))
     }.join(graph.fedges)
       .filter{case (_,((_,(_,timestamp1)), (_, timestamp2)))=> timestamp2 > timestamp1}
-      .map{case (_,((eid1, e1), (eid2, e2)))=>
+      .map{case (_,((eid1, _), (eid2, _)))=>
         (eid1, eid2)
       }
 
-    val (starts,ends) = preFilter(validShortPaths)
+    val (starts,ends) = preFilter(graph, validShortPaths)
     val events = graph.events.leftOuterJoin(starts)
       .map{case (eid,(event, optStart)) =>
         (eid, (event, optStart.isDefined))
@@ -38,10 +31,12 @@ class Detector(val graph: Graph,
         (eid, (event, isStart, optEnd.isDefined))
       }
 
-    extract(events,validShortPaths)
+    val result = extract(events,validShortPaths)
+    val count = result.count()
+    callback.apply(result)
   }
 
-  def preFilter(validShortPaths: RDD[(Long,Long)]): (RDD[(Long, Null)],RDD[(Long, Null)]) = {
+  def preFilter(graph: Graph, validShortPaths: RDD[(Long,Long)]): (RDD[(Long, Null)],RDD[(Long, Null)]) = {
 
     val ends = graph.events.leftOuterJoin(validShortPaths)
       .filter{case (_,(_, opId))=>opId.isEmpty}
@@ -56,7 +51,7 @@ class Detector(val graph: Graph,
   }
 
   def extract(events: RDD[(Long,(Event,Boolean,Boolean))],
-              validShortPaths: RDD[(Long,Long)]): Unit = {
+              validShortPaths: RDD[(Long,Long)]): RDD[Array[Event]] = {
 
     var paths: RDD[ArrayBuffer[(Long,(Event,Boolean,Boolean))]] =  events.filter(x => x._2._2).map(x=>ArrayBuffer(x))
 
@@ -79,6 +74,8 @@ class Detector(val graph: Graph,
       uncomp = paths.filter(!_.last._2._3).map(t => (t.last._1,t))
       count = uncomp.count()
     }
+
+    seqs
   }
 
   private def buf2arr(buf: ArrayBuffer[(Long,(Event,Boolean,Boolean))]): Array[Event] = {

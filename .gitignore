@@ -8,3 +8,5 @@ active
 log1
 log
 target/
+out
+result/

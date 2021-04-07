@@ -1,7 +1,8 @@
 package tg.example
 
-case class Config(path: String = null,
-                  graphDir: String = null,
+case class Config(action: String = "all",
+                  path: String = "",
+                  graphDir: String = "",
+                  resultDir: String = "",
                   wl: Long = 0, sl: Long = 0,
-                  numWindow: Int = 1,
-                  isWrite: Boolean = false)
+                  numWindow: Int = 1)
