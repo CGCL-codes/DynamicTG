@@ -47,6 +47,11 @@ the step length for select anchors. Default is 2. If `step < 0`, the extraction 
 [Optional] if set, the final CETs result will be written to the directory that are set by `-w`
 
 
+### Publications
+If you want to know more detailed information, please refer to this paper:  
+Huiyao Mei, Hanhua Chen, Hai Jin, Qiang-Sheng Hua, Bing Bing Zhou. Efficient Complete Event Trend Detection over High-Velocity Streams. in Proceedings of the 50th International Conference on Parallel Processing (ICPP 2021), Chicago, Illinois, USA.  
+([bibtex](https://github.com/CGCL-codes/DynamicTG/blob/master/DynamicTG.bib))
+
 ### Authors and Copyright
 DynamicTG is developed in National Engineering Research Center for Big Data Technology and System, Cluster and Grid Computing Lab, Services Computing Technology and System Lab, School of Computer Science and Technology, Huazhong University of Science and Technology, Wuhan, China by Huiyao Mei (hym@hust.edu.cn), Hanhua Chen (chen@hust.edu.cn), Hai Jin (hjin@hust.edu.cn), Qiang-Sheng Hua (qshua@hust.edu.cn) and Bing Bing Zhou (bing.zhou@sydney.edu.au).
 
